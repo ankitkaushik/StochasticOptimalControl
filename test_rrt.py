@@ -1,7 +1,12 @@
+import os
+import cPickle
 from Vertex import Vertex
 from RRT import RRT
 from PI_RRT import PI_RRT
-import cPickle
+from plotStore import plotStore
+
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/debug/'
+print saveDir
 
 # vInit = Vertex(-9.,0.,0.,0.,0.,0)
 vInit = Vertex(-3.274496147453313, -0.4380171488751353, -0.072003545741959094, 0.0, 0.0, -1)
@@ -15,7 +20,9 @@ steeringRatio = 1
 alpha = 0.25
 r = 4.0
 
-rrt = RRT(vInit,vGoal,dt,velocity,wheelBase,steeringRatio,alpha,r)
+plotStore = plotStore(vInit,vGoal,saveDir)
+
+rrt = RRT(vInit,vGoal,dt,velocity,wheelBase,steeringRatio,alpha,r,plotStore)
 rrt.extractPath()
 
 # for i in range(10):
