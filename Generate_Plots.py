@@ -1,15 +1,13 @@
-import matplotlib
-matplotlib.use('Agg')
-from Vertex import Vertex
-from RRT import RRT
-import matplotlib.pyplot as plt
+import os
 import time
-from PI_RRT import PI_RRT
 from copy import deepcopy
 import cPickle
+from subprocess import call
+
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot, scatter, savefig
-from subprocess import call
 import matplotlib.pylab as pylab
 params = {'legend.fontsize': 'xx-large',
           'figure.figsize': (15, 5),
@@ -18,6 +16,11 @@ params = {'legend.fontsize': 'xx-large',
          'xtick.labelsize':'xx-large',
          'ytick.labelsize':'xx-large'}
 pylab.rcParams.update(params)
+
+from Vertex import Vertex
+from RRT import RRT
+from PI_RRT import PI_RRT
+from plotStore import plotStore
 
 def plotPath(path):
     plt.plot([v.x for v in path], [v.y for v in path], '-b')
@@ -148,13 +151,14 @@ def plotObstacles(RRT):
 # In[12]:
 
 
-saveDir = 'pirrtImages7/'
-
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/debug/'
+print saveDir
 
 # In[13]:
 
 
-vInit = Vertex(-6.,0.,0.,0.,0.,0)
+# vInit = Vertex(-6.,0.,0.,0.,0.,0)
+vInit = Vertex(-2.22621023679345, -1.0965525803342375, 0.095902618444505039, 0.0, 0.0, -1)
 # vInit = Vertex(-7.,2.,0.,0.,0.,0)
 # vInit = Vertex(-7.,-2.,0.,0.,0.,0)
 # vInit = Vertex(-5.,0.,0.,0.,0.,0)
@@ -169,29 +173,31 @@ r = 4.0
 
 # In[14]:
 
-# rrt = RRT(vInit,vGoal,dt,velocity,wheelBase,steeringRatio,alpha,r)
-# rrt.createObstacles(obstacleType='double')
-# rrt.extractPath(stopCount=250, stopAtGoal=False)
-# saveRRTVerticesPlot(rrt,saveDir)
+plotStore = plotStore(vInit,vGoal,saveDir)
+
+rrt = RRT(vInit,vGoal,dt,velocity,wheelBase,steeringRatio,alpha,r,plotStore)
+rrt.createObstacles(obstacleType='double')
+rrt.extractPath()
 
 # fig = figure(figsize=(20,20))
-pi_rrt = PI_RRT(vInit,vGoal,saveDir)
-pirrtTimes = []
-for i in range(15):
-    startTime = time.time()    
-    print 'COUNT '+ str(i)
-    pi_rrt.runRRT()
-    pi_rrt.generateTrajectories2()
-    try:
-        pi_rrt.executeControl2(*pi_rrt.computeVariation2())
-        print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
-        pirrtTimes.append(time.time()-startTime)
-        print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
-    except:
-        U,t = pi_rrt.computeVariation2()
-        print U
-        print t
-        break
+# pi_rrt = PI_RRT(vInit,vGoal,saveDir)
+# pirrtTimes = []
+# for i in range(15):
+#     startTime = time.time()    
+#     print 'COUNT '+ str(i)
+#     pi_rrt.runRRT()
+#     pi_rrt.generateTrajectories2()
+#     try:
+#         pi_rrt.executeControl2(*pi_rrt.computeVariation2())
+#         print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
+#         pirrtTimes.append(time.time()-startTime)
+#         print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
+#     except:
+#         U,t = pi_rrt.computeVariation2()
+#         print U
+#         print t
+#         break
+
     # fig = plt.figure(figsize=(20,20))
     # plt.title('Sampling-based path planning using stochastic optimal control',fontsize=20)    
     # for obstacle in pi_rrt.RRT.obstacles:    
