@@ -27,6 +27,7 @@ class RRT(object):
         self.vertices = [vInit]
         # self.edges = []
         self.searchSpace = [min(vInit.x, vInit.y), max(vGoal.x, vGoal.y)]
+        self.searchSpace = [-9, 9]
         # self.time = zInit[2]
         self.dt = dt
         self.velocity = velocity
@@ -69,12 +70,15 @@ class RRT(object):
             y.extend([obstacle.center[1] - obstacle.size[1]/2])
             y.extend([obstacle.center[1] - obstacle.size[1]/2])
             obstaclePlot = plt.plot(x,y,'r')
-        if self.pathReversed is not None:
+        try:
             rrtPathPlot = plt.plot([v.x for v in self.pathReversed], [v.y for v in self.pathReversed], '-b',linewidth=3.0)
+            # rrtPathPlot = plt.scatter([v.x for v in self.pathReversed], [v.y for v in self.pathReversed], c='blue')
+        except:
+            pass
         pirrtPathPlot = plt.plot([v.x for v in self.plotStore.path], [v.y for v in self.plotStore.path], '-r',linewidth=7.0)
         rrtVerticesPlot = plt.scatter([v.x for v in self.plotStore.allRRTVertices],[v.y for v in self.plotStore.allRRTVertices],c='cyan')
         rrtSampledPointsPlot = plt.scatter([v.x for v in self.plotStore.sampledPoints],[v.y for v in self.plotStore.sampledPoints],c='orange')
-        plt.legend([initPlot,goalPlot,rrtPathPlot,pirrtPathPlot,rrtVerticesPlot,rrtSampledPointsPlot], ['Start', 'Goal','RRT Path','PIRRT Path','Vertices','Sampled Points'], loc=3)
+        plt.legend([initPlot,goalPlot,pirrtPathPlot,rrtVerticesPlot,rrtSampledPointsPlot], ['Start', 'Goal','PIRRT Path','Vertices','Sampled Points'], loc=3)
         plt.grid()
         plt.savefig(self.plotStore.plotSaveDir+str(self.plotStore.plotIndex)+'.png')
         self.plotStore.plotIndex += 1
@@ -152,7 +156,9 @@ class RRT(object):
                     # print [v.getState() for v in self.vertices]
             if self.plotStore is not None:
                 if self.plottingInterval != 'end':
-                    self.plotAll()
+                    if self.iterationCount % 100 == 0:
+                        print 'plotting!'
+                        self.plotAll()
                 # print 'newly steered to vertex is ' + str(Vertex(*newVertices[-1]).getState())
 
             # If we don't want to consider obstacles
@@ -276,11 +282,11 @@ class RRT(object):
             alpha2 = alpha1 - currentVertex.theta
 
         omega = 2*self.velocity*sin(alpha2)/L
-        return omega
+        return alpha1
 
     def steer2(self, vNearest, vNearestIndex, vRand):
 
-        numSteps = 1
+        numSteps = 10
         startTime = time.time()
         newVertices = np.zeros((numSteps+1,6))
 

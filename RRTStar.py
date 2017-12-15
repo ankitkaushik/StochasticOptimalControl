@@ -27,7 +27,7 @@ class RRTStar(object):
         # vertex: [x,y,theta,time,parent,control input]
         self.vertices = [vInit]
         # self.edges = []
-        self.searchSpace = [min(vInit.x, vInit.y), max(vGoal.x, vGoal.y)]
+        self.searchSpace = [-9,9]
         # self.time = zInit[2]
         self.dt = dt
         self.velocity = velocity
@@ -72,9 +72,12 @@ class RRTStar(object):
             y.extend([obstacle.center[1] - obstacle.size[1]/2])
             y.extend([obstacle.center[1] - obstacle.size[1]/2])
             obstaclePlot = plt.plot(x,y,'r')
-        if self.pathReversed is not None:
-            rrtPathPlot = self.plotPath(self.pathReversed)
-        pirrtPathPlot = self.plotPath(self.plotStore.path)
+        try:
+            rrtPathPlot, = plt.plot([v.x for v in self.pathReversed], [v.y for v in self.pathReversed], '-b',linewidth=3.0, label='RRT Path')
+            # rrtPathPlot = plt.scatter([v.x for v in self.pathReversed], [v.y for v in self.pathReversed], c='blue')
+        except:
+            pass
+        pirrtPathPlot, = plt.plot([v.x for v in self.plotStore.path], [v.y for v in self.plotStore.path], '-r',linewidth=7.0, label='PIRRT Path')
         rrtVerticesPlot = plt.scatter([v.x for v in self.plotStore.allRRTVertices],[v.y for v in self.plotStore.allRRTVertices],c='cyan')
         rrtSampledPointsPlot = plt.scatter([v.x for v in self.plotStore.sampledPoints],[v.y for v in self.plotStore.sampledPoints],c='orange')
         plt.legend([initPlot,goalPlot,rrtPathPlot,pirrtPathPlot,rrtVerticesPlot,rrtSampledPointsPlot], ['Start', 'Goal','RRT Path','PIRRT Path','Vertices','Sampled Points'], loc=3)
@@ -142,32 +145,42 @@ class RRTStar(object):
             vNearest, vNearestIndex = self.getNN(vRand)
             # print 'vNearest: ' + str(vNearest.getState())
             newVertices = self.steer2(vNearest, vNearestIndex, vRand)
-            print [v.getState() for v in newVertices]
-            print len(newVertices)
+            # print [v.getState() for v in newVertices]
+            # print len(newVertices)
             obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
             print obstacleFreeVertices
             # if obstacleFreeVertices == False:
-            #     for i,v in enumerate(self.vertices):
-            #         if self.obstacleFree(v,newVertices[-1]):
-            #             if self.getDistance(v,newVertices[-1]) < self.searchRadius:
-            #                 if v.cost+self.getDistance(v,newVertices[-1]) < vNearest.cost+self.getDistance(vNearest,newVertices[-1]):
-            #                     vNearest = v
-            #                     vNearestIndex = i
-            #     newVertices[-1].parent = vNearestIndex
-            #     newVertices[-1].cost = vNearest.cost+self.getDistance(vNearest,newVertices[-1])
+            # print 'old new vertices[-1]: ' + str(newVertices[-1].parent)
 
-                # sys.exit()
-            if obstacleFreeVertices == True: 
-                for v in newVertices:
-                    # print 'these are supposed to be obstacle free vertices'
-                    # print Vertex(*newVertices[i]).getState()
-                    self.vertices.append(newVertices[-1])
-                    if self.plotStore is not None:
-                        self.plotStore.allRRTVertices.append(newVertices[-1])
-                    # print [v.getState() for v in self.vertices]
-            if self.plotStore is not None:
-                if self.plottingInterval != 'end':
-                    self.plotAll()
+            if obstacleFreeVertices:
+                for i,v in enumerate(self.vertices):
+                    if self.obstacleFree(v,newVertices[-1]):
+                        if self.getDistance(v,newVertices[-1]) < self.searchRadius:
+                            if v.cost+self.getDistance(v,newVertices[-1]) < vNearest.cost+self.getDistance(vNearest,newVertices[-1]):
+                                vNearest = v
+                                vNearestIndex = i
+                newVertices[-1].parent = vNearestIndex
+                newVertices[-1].cost = vNearest.cost+self.getDistance(vNearest,newVertices[-1])
+
+                self.vertices.append(newVertices[-1])
+                if self.plotStore is not None:
+                    self.plotStore.allRRTVertices.append(newVertices[-1])
+
+                if self.plotStore is not None:
+                    if self.plottingInterval != 'end':
+                        self.plotAll()
+
+                for i,v in enumerate(self.vertices):
+                    if i != newVertices[-1].parent:
+                        if self.obstacleFree(v,newVertices[-1]):
+                            if self.getDistance(v,newVertices[-1]) < self.searchRadius:
+                                if newVertices[-1].cost+self.getDistance(v,newVertices[-1]) < v.cost:
+                                    v.parent = len(self.vertices)-1
+                                    v.cost = newVertices[-1].cost+self.getDistance(v,newVertices[-1])
+              
+                # print 'new new vertices[-1]: ' + str(newVertices[-1].parent)
+
+                
                 # print 'newly steered to vertex is ' + str(Vertex(*newVertices[-1]).getState())
 
             # If we don't want to consider obstacles
@@ -295,7 +308,7 @@ class RRTStar(object):
 
     def steer2(self, vNearest, vNearestIndex, vRand):
 
-        numSteps = 1
+        numSteps = 10
         startTime = time.time()
         newVertices = []
 
@@ -324,9 +337,11 @@ class RRTStar(object):
             newVertex[4] = dtheta
             newVertex[5] = newVertexIndex+i-2
             newVertex[6] = newVertices[-1].cost+sqrt((newVertices[-1].x - newVertex[0])**2 + (newVertices[-1].y - newVertex[1])**2)
+            # print newVertex
             newVertices.append(Vertex(*newVertex))
 
         # print 'steering completed in ' + str(time.time()-startTime) + ' s'
+        # sys.exit()
         return newVertices
 
     def extractPath(self, stopCount=np.inf, stopAtGoal=True):
@@ -339,7 +354,7 @@ class RRTStar(object):
                 if self.iterationCount > stopCount:
                     break
                 self.extend()
-                # print 'vertices length:' + str(len(self.vertices))
+                print 'vertices length:' + str(len(self.vertices))
                 lastVertex = self.vertices[-1]
                 print lastVertex.getState()
                 # print 'lastVertex updated'
@@ -354,10 +369,18 @@ class RRTStar(object):
             print 'last added vertex is ' + str(lastVertex.getState())
             self.path.append(lastVertex)
             j = -1
+            # while self.vertices[j].parent == 0:
+            #     j -= 1
+
             while self.vertices[j].parent is not 0:
+                print self.vertices[j].parent 
                 self.path.append(self.vertices[int(self.vertices[j].parent)])
                 j = self.vertices[j].parent
-
+                # print 'j is: ' + str(j)
+                # print self.vertices[j].parent
+                # print [v.getState() for v in self.vertices[j-5:j+5]]
+                # sys.exit()
+            self.path.append(self.vInit)
             self.pathReversed = []
             for v in reversed(self.path):
                 self.pathReversed.append(v)

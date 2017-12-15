@@ -1,4 +1,4 @@
-import os
+import os, errno
 import time
 from copy import deepcopy
 import cPickle
@@ -19,6 +19,7 @@ pylab.rcParams.update(params)
 
 from Vertex import Vertex
 from RRT import RRT
+from RRTStar import RRTStar
 from PI_RRT import PI_RRT
 from plotStore import plotStore
 
@@ -151,37 +152,48 @@ def plotObstacles(RRT):
 # In[12]:
 
 
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/debug/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/debug5/'
 print saveDir
 
-# In[13]:
+try:
+    os.makedirs(saveDir)
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
 
 
-# vInit = Vertex(-6.,0.,0.,0.,0.,0)
-vInit = Vertex(-2.22621023679345, -1.0965525803342375, 0.095902618444505039, 0.0, 0.0, -1)
+# vInit = Vertex(-9.,0.,0.,0.,0.,0)
+vInit = Vertex(-3.274496147453313, -0.4380171488751353, -0.072003545741959094, 0.0, 0.0, -1)
+# vInit = Vertex(-2.8, -1.5, -0.072003545741959094, 0.0, 0.0, -1)
+# vInit = Vertex(-2.1230469516087718, -0.28321651336500553, 0.093621076239903567, 0.0, 0.0, -1)
+# vInit = Vertex(3.5579065654977633, -0.19329584063790506, -0.025624273325923833, 0.0, 0.0, -1)
+# vInit = Vertex(-2.1230469516087718, -0.28321651336500553, 0.093621076239903567, 0.0, 0.0, -1)
+# vInit = Vertex(3.5579065654977633, -0.19329584063790506, -0.025624273325923833, 0.0, 0.0, -1)
+# vInit = Vertex(-2.22621023679345, -1.0965525803342375, 0.095902618444505039, 0.0, 0.0, -1)
+# vInit = Vertex(2.191991582749325, 1.0115514363335742, 0.62800887258853244, 0.0, 0.0, -1)
 # vInit = Vertex(-7.,2.,0.,0.,0.,0)
 # vInit = Vertex(-7.,-2.,0.,0.,0.,0)
 # vInit = Vertex(-5.,0.,0.,0.,0.,0)
 vGoal = Vertex(9.,0.,0.,10.,0.,0)
 dt = 0.1
-velocity = 2.3
+velocity = 5.0
 wheelBase = 2.0
 steeringRatio = 1
 alpha = 0.25
 r = 4.0
 
-# In[14]:
-
 plotStore = plotStore(vInit,vGoal,saveDir)
-
-rrt = RRT(vInit,vGoal,dt,velocity,wheelBase,steeringRatio,alpha,r,plotStore)
-rrt.createObstacles(obstacleType='double')
+# rrt = RRTStar(vInit,vGoal,dt,velocity,wheelBase,steeringRatio,alpha,r,plotStore,plottingInterval='end')
+rrt = RRT(vInit,vGoal,dt,velocity,wheelBase,steeringRatio,alpha,r,plotStore,plottingInterval='notend')
+rrt.createObstacles(obstacleType='single')
 rrt.extractPath()
 
 # fig = figure(figsize=(20,20))
-# pi_rrt = PI_RRT(vInit,vGoal,saveDir)
+# pi_rrt = PI_RRT(vInit,vGoal,saveDir,useRRTStar=False)
 # pirrtTimes = []
-# for i in range(15):
+# i = 0
+# for i in range(20):
+# while pi_rrt.reachedGoal(pi_rrt.path[-1]) is False:
 #     startTime = time.time()    
 #     print 'COUNT '+ str(i)
 #     pi_rrt.runRRT()
@@ -191,11 +203,10 @@ rrt.extractPath()
 #         print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
 #         pirrtTimes.append(time.time()-startTime)
 #         print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
+#         i += 1
 #     except:
-#         U,t = pi_rrt.computeVariation2()
-#         print U
-#         print t
-#         break
+#         for v in pi_rrt.RRT.pathReversed:
+#             pi_rrt.path.append(v)
 
     # fig = plt.figure(figsize=(20,20))
     # plt.title('Sampling-based path planning using stochastic optimal control',fontsize=20)    
