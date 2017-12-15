@@ -170,7 +170,6 @@ steeringRatio = 1
 alpha = 0.25
 r = 4.0
 
-
 # In[14]:
 
 plotStore = plotStore(vInit,vGoal,saveDir)

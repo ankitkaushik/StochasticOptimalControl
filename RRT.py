@@ -141,8 +141,7 @@ class RRT(object):
             newVertices = self.steer2(vNearest, vNearestIndex, vRand)
             # print newVertices
             obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
-            # print obstacleFreeVertices
-            # print obstacleFreeVertices
+            print obstacleFreeVertices
             if obstacleFreeVertices == True: 
                 for i in range(newVertices.shape[0]):
                     # print 'these are supposed to be obstacle free vertices'
@@ -277,11 +276,11 @@ class RRT(object):
             alpha2 = alpha1 - currentVertex.theta
 
         omega = 2*self.velocity*sin(alpha2)/L
-        return alpha1
+        return omega
 
     def steer2(self, vNearest, vNearestIndex, vRand):
 
-        numSteps = 10
+        numSteps = 1
         startTime = time.time()
         newVertices = np.zeros((numSteps+1,6))
 
@@ -298,7 +297,8 @@ class RRT(object):
         newVertexIndex = len(self.vertices)
         currentVertex = Vertex(*newVertices[0])
 
-        for i in range(1,numSteps+1):                
+        for i in range(1,numSteps+1):  
+            print i              
             dx = self.velocity*cos(newVertices[i-1,2])
             dy = self.velocity*sin(newVertices[i-1,2])               
             dtheta = self.computeSteeringAngle(vRand,currentVertex)
@@ -402,14 +402,7 @@ class RRT(object):
             if x>=(obstacle.center[0]-obstacle.size[0]/2)-boundaryOffset and  x<=(obstacle.center[0]+obstacle.size[0]/2)+boundaryOffset:
                 if y>=(obstacle.center[1]-obstacle.size[1]/2)-boundaryOffset and  y<=(obstacle.center[1]+obstacle.size[1]/2)+boundaryOffset:
                     obstacleFree = False
-
-            # o_x = [p[0] for p in obstacle]
-            # o_y = [p[1] for p in obstacle]
-            # x,y = v.getState()[0:2]
-            # if x>=min(o_x) and  x<=max(o_x):
-            #     if y>=min(o_y) and  y<=max(o_y):
-            #         obstacleFree = False
-
+                    
         return obstacleFree
 
     def obstacleFreeVertices(self, newVertices):
