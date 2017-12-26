@@ -7,6 +7,7 @@ from Obstacle import Obstacle
 import time
 import matplotlib.pyplot as plt
 from utils import ccw
+import cPickle
 
 import matplotlib.pylab as pylab
 params = {'legend.fontsize': 'xx-large',
@@ -133,59 +134,70 @@ class RRTStar(object):
                     vNearestIndex = i
             return vNearest, vNearestIndex
 
-    def extend(self):
+    def extend(self,stopCount=np.inf):
 
         obstacleFreeVertices = False
-        while obstacleFreeVertices == False: 
-            vRand = self.sample()   
-            self.sampledPoints.append(vRand)
-            if self.plotStore is not None:
-                self.plotStore.sampledPoints.append(vRand)
-            # print 'vRand: ' + str(vRand.getState())
-            vNearest, vNearestIndex = self.getNN(vRand)
-            # print 'vNearest: ' + str(vNearest.getState())
-            newVertices = self.steer2(vNearest, vNearestIndex, vRand)
-            # print [v.getState() for v in newVertices]
-            # print len(newVertices)
-            obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
-            print obstacleFreeVertices
-            # if obstacleFreeVertices == False:
-            # print 'old new vertices[-1]: ' + str(newVertices[-1].parent)
-
-            if obstacleFreeVertices:
-                for i,v in enumerate(self.vertices):
-                    if self.obstacleFree(v,newVertices[-1]):
-                        if self.getDistance(v,newVertices[-1]) < self.searchRadius:
-                            if v.cost+self.getDistance(v,newVertices[-1]) < vNearest.cost+self.getDistance(vNearest,newVertices[-1]):
-                                vNearest = v
-                                vNearestIndex = i
-                newVertices[-1].parent = vNearestIndex
-                newVertices[-1].cost = vNearest.cost+self.getDistance(vNearest,newVertices[-1])
-
-                self.vertices.append(newVertices[-1])
+        count = 0
+        print stopCount
+        if count<stopCount:
+            while obstacleFreeVertices == False: 
+                vRand = self.sample()   
+                self.sampledPoints.append(vRand)
                 if self.plotStore is not None:
-                    self.plotStore.allRRTVertices.append(newVertices[-1])
+                    self.plotStore.sampledPoints.append(vRand)
+                # print 'vRand: ' + str(vRand.getState())
+                vNearest, vNearestIndex = self.getNN(vRand)
+                # print 'vNearest: ' + str(vNearest.getState())
+                newVertices = self.steer2(vNearest, vNearestIndex, vRand)
+                # print [v.getState() for v in newVertices]
+                # print len(newVertices)
+                obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
+                print obstacleFreeVertices
+                # if obstacleFreeVertices == False:
+                # print 'old new vertices[-1]: ' + str(newVertices[-1].parent)
 
-                if self.plotStore is not None:
-                    if self.plottingInterval != 'end':
-                        self.plotAll()
-
-                for i,v in enumerate(self.vertices):
-                    if i != newVertices[-1].parent:
+                if obstacleFreeVertices:
+                    for i,v in enumerate(self.vertices):
                         if self.obstacleFree(v,newVertices[-1]):
                             if self.getDistance(v,newVertices[-1]) < self.searchRadius:
-                                if newVertices[-1].cost+self.getDistance(v,newVertices[-1]) < v.cost:
-                                    v.parent = len(self.vertices)-1
-                                    v.cost = newVertices[-1].cost+self.getDistance(v,newVertices[-1])
-              
-                # print 'new new vertices[-1]: ' + str(newVertices[-1].parent)
+                                if v.cost+self.getDistance(v,newVertices[-1]) < vNearest.cost+self.getDistance(vNearest,newVertices[-1]):
+                                    vNearest = v
+                                    vNearestIndex = i
+                    newVertices[-1].parent = vNearestIndex
+                    newVertices[-1].cost = vNearest.cost+self.getDistance(vNearest,newVertices[-1])
+
+                    self.vertices.append(newVertices[-1])
+                    if self.plotStore is not None:
+                        self.plotStore.allRRTVertices.append(newVertices[-1])
+
+                    if self.plotStore is not None:
+                        if self.plottingInterval != 'end':
+                            self.plotAll()
+
+                    for i,v in enumerate(self.vertices):
+                        if i != newVertices[-1].parent:
+                            if self.obstacleFree(v,newVertices[-1]):
+                                if self.getDistance(v,newVertices[-1]) < self.searchRadius:
+                                    if newVertices[-1].cost+self.getDistance(v,newVertices[-1]) < v.cost:
+                                        v.parent = len(self.vertices)-1
+                                        v.cost = newVertices[-1].cost+self.getDistance(v,newVertices[-1])
+                  
+                    # print 'new new vertices[-1]: ' + str(newVertices[-1].parent)
 
                 
-                # print 'newly steered to vertex is ' + str(Vertex(*newVertices[-1]).getState())
+                    # print 'newly steered to vertex is ' + str(Vertex(*newVertices[-1]).getState())
 
-            # If we don't want to consider obstacles
-            # for i in range(1,newVertices.shape[0]):
-            #     self.vertices.append(Vertex(*newVertices[i]))
+                # If we don't want to consider obstacles
+                # for i in range(1,newVertices.shape[0]):
+                #     self.vertices.append(Vertex(*newVertices[i]))
+
+                count += 1
+                print count
+        else:
+            cPickle.dump(self.vertices, open('RRTStarVertices.p','wb'))
+            cPickle.dump(self.sampledPoints, open('RRTStarSampledPoints.p','wb'))
+            print self.vInit.getState()
+            sys.exit()
 
     def sample(self):
 
@@ -344,7 +356,7 @@ class RRTStar(object):
         # sys.exit()
         return newVertices
 
-    def extractPath(self, stopCount=np.inf, stopAtGoal=True):
+    def extractPath(self, stopCount=np.inf, stopAtGoal=True,stopCountExtend=100):
         self.path = []
         self.iterationCount = 0
         lastVertex = self.vertices[-1]
@@ -353,7 +365,9 @@ class RRTStar(object):
             while self.reachedGoal(lastVertex) == False:
                 if self.iterationCount > stopCount:
                     break
-                self.extend()
+                    print self.vInit.getState()
+                    sys.exit()
+                self.extend(stopCountExtend)
                 print 'vertices length:' + str(len(self.vertices))
                 lastVertex = self.vertices[-1]
                 print lastVertex.getState()

@@ -143,16 +143,9 @@ def plotObstacles(RRT):
         y.extend([obstacle.center[1] - obstacle.size[1]/2])
         obstaclePlot = plot(x,y,'r')
 
+# Create directory to save files
 
-# # In a loop, instantiate PI_RRT object which does the following:
-# - Performs RRT with no obstacles
-# - Generates trajectories around nominal RRT trajectory
-# - Computes variation for control input from noise profiles of generated trajectories
-
-# In[12]:
-
-
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/debug5/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/debug9/'
 print saveDir
 
 try:
@@ -161,9 +154,10 @@ except OSError as e:
     if e.errno != errno.EEXIST:
         raise
 
+# RRT variables
 
-# vInit = Vertex(-9.,0.,0.,0.,0.,0)
-vInit = Vertex(-3.274496147453313, -0.4380171488751353, -0.072003545741959094, 0.0, 0.0, -1)
+vInit = Vertex(-9.,0.,0.,0.,0.,0)
+# vInit = Vertex(-3.274496147453313, -0.4380171488751353, -0.072003545741959094, 0.0, 0.0, -1)
 # vInit = Vertex(-2.8, -1.5, -0.072003545741959094, 0.0, 0.0, -1)
 # vInit = Vertex(-2.1230469516087718, -0.28321651336500553, 0.093621076239903567, 0.0, 0.0, -1)
 # vInit = Vertex(3.5579065654977633, -0.19329584063790506, -0.025624273325923833, 0.0, 0.0, -1)
@@ -182,54 +176,29 @@ steeringRatio = 1
 alpha = 0.25
 r = 4.0
 
-plotStore = plotStore(vInit,vGoal,saveDir)
+
+# plotStore = plotStore(vInit,vGoal,saveDir)
 # rrt = RRTStar(vInit,vGoal,dt,velocity,wheelBase,steeringRatio,alpha,r,plotStore,plottingInterval='end')
-rrt = RRT(vInit,vGoal,dt,velocity,wheelBase,steeringRatio,alpha,r,plotStore,plottingInterval='notend')
-rrt.createObstacles(obstacleType='single')
-rrt.extractPath()
+# rrt = RRT(vInit,vGoal,dt,velocity,wheelBase,steeringRatio,alpha,r,plotStore,plottingInterval='notend')
+# rrt.createObstacles(obstacleType='double')
+# rrt.extractPath()
 
-# fig = figure(figsize=(20,20))
-# pi_rrt = PI_RRT(vInit,vGoal,saveDir,useRRTStar=False)
-# pirrtTimes = []
-# i = 0
-# for i in range(20):
-# while pi_rrt.reachedGoal(pi_rrt.path[-1]) is False:
-#     startTime = time.time()    
-#     print 'COUNT '+ str(i)
-#     pi_rrt.runRRT()
-#     pi_rrt.generateTrajectories2()
-#     try:
-#         pi_rrt.executeControl2(*pi_rrt.computeVariation2())
-#         print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
-#         pirrtTimes.append(time.time()-startTime)
-#         print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
-#         i += 1
-#     except:
-#         for v in pi_rrt.RRT.pathReversed:
-#             pi_rrt.path.append(v)
-
-    # fig = plt.figure(figsize=(20,20))
-    # plt.title('Sampling-based path planning using stochastic optimal control',fontsize=20)    
-    # for obstacle in pi_rrt.RRT.obstacles:    
-    #     x = []
-    #     y = []
-    # #     print obstacle.center[0] - obstacle.size[0]/2
-    #     x.extend([obstacle.center[0] - obstacle.size[0]/2])
-    #     x.extend([obstacle.center[0] - obstacle.size[0]/2])
-    #     x.extend([obstacle.center[0] + obstacle.size[0]/2])
-    #     x.extend([obstacle.center[0] + obstacle.size[0]/2])
-    #     x.extend([obstacle.center[0] - obstacle.size[0]/2])
-    #     y.extend([obstacle.center[1] - obstacle.size[1]/2])
-    #     y.extend([obstacle.center[1] + obstacle.size[1]/2])
-    #     y.extend([obstacle.center[1] + obstacle.size[1]/2])
-    #     y.extend([obstacle.center[1] - obstacle.size[1]/2])
-    #     y.extend([obstacle.center[1] - obstacle.size[1]/2])
-    #     obstaclePlot = plot(x,y,'r')
-    # pirrtPathPlot = plotPath(pi_rrt.path)
-    # rrtVerticesPlot = scatter([v.x for v in pi_rrt.allRRTVertices],[v.y for v in pi_rrt.allRRTVertices],c='cyan')
-    # rrtSampledPointsPlot = scatter([v.x for v in pi_rrt.sampledPoints],[v.y for v in pi_rrt.sampledPoints],c='orange')
-    # plt.legend([pirrtPathPlot,rrtVerticesPlot,rrtSampledPointsPlot], ['PIRRT Path','All RRT Vertices','All RRT Sampled Points'])
-    # plt.grid()
-    # savefig(saveDir+str(i)+'.png')
+pi_rrt = PI_RRT(vInit,vGoal,saveDir,useRRTStar=True)
+pirrtTimes = []
+i = 0
+while pi_rrt.reachedGoal(pi_rrt.path[-1]) is False:
+    startTime = time.time()    
+    print 'COUNT '+ str(i)
+    pi_rrt.runRRT()
+    pi_rrt.generateTrajectories2()
+    try:
+        pi_rrt.executeControl2(*pi_rrt.computeVariation2())
+        print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
+        pirrtTimes.append(time.time()-startTime)
+        print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
+        i += 1
+    except:
+        for v in pi_rrt.RRT.pathReversed:
+            pi_rrt.path.append(v)
 
 # rc = call(".//home/ankit/Documents/Thesis/createVideo.sh",shell=True)

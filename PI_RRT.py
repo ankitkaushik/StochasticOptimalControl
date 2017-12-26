@@ -26,7 +26,7 @@ class PI_RRT(object):
         self.alpha = 0.25
         self.r = 4.0
         self.Lambda = 10
-        self.M = 1
+        self.M = 5
         self.p = -1/(self.alpha**2)
         self.Q = np.array([[  0.,   0.,   0.],
                             [  0.,   0.,   0.],
