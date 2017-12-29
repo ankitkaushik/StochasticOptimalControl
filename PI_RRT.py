@@ -10,6 +10,8 @@ from RRT import RRT
 from RRTStar import RRTStar
 from plotStore import plotStore
 
+import multiprocessing as mp
+
 # import pycuda.gpuarray as gpuarray
 # import pycuda.driver as cuda
 # import pycuda.autoinit
@@ -72,6 +74,15 @@ class PI_RRT(object):
         self.allRRTVertices.extend(self.RRT.vertices)
         self.sampledPoints.extend(self.RRT.sampledPoints)
         print 'len of allRRTVertices is ' + str(len(self.allRRTVertices))
+
+    def runRRTMP(self,trajNum):
+    	print 'trajectory ' + str(trajNum)
+        if self.useRRTStar:
+            RRT = RRTStar(self.path[-1],self.vGoal,self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r,self.plotStore)
+        else:
+            RRT = RRT(self.path[-1],self.vGoal,self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r,self.plotStore)
+        RRT.extractPath()
+        return RRT.pathReversed
 
     def generateTrajectory(self, numSteps, dt, alpha, velocity, wheelBase, steeringRatio, r):
 
@@ -147,6 +158,10 @@ class PI_RRT(object):
             self.sampledPoints.extend(self.RRT.sampledPoints)
             print 'len of allRRTVertices is ' + str(len(self.allRRTVertices))
 
+    def generateTrajectoriesMP(self):
+    	pool = mp.Pool()
+    	self.trajectories = pool.map(self.runRRTMP,range(5))
+
     def computeVariation(self):
 
         S = np.zeros(len(self.trajectories))
@@ -166,7 +181,7 @@ class PI_RRT(object):
 
         return variation
 
-    def contructStatesMatrix(self,path):
+    def constructStatesMatrix(self,path):
 
         if len(path) == 2:          
             vertices = [v for v in path]
@@ -295,7 +310,7 @@ class PI_RRT(object):
 
         startTime = time.time()
 
-        rrtStates = self.contructStatesMatrix(self.RRT.pathReversed)
+        rrtStates = self.constructStatesMatrix(self.RRT.pathReversed)
 
         # try:      
         controlSpline = UnivariateSpline(rrtStates[:,3], rrtStates[:,4])
@@ -305,18 +320,18 @@ class PI_RRT(object):
         totalCosts = np.zeros(len(self.trajectories))
         
         trajectoryLengths = [len(t) for t in self.trajectories]
-        print 'max trajectory length is ' + str(max(trajectoryLengths))
-        print 'min trajectory length is ' + str(min(trajectoryLengths))
+        # print 'max trajectory length is ' + str(max(trajectoryLengths))
+        # print 'min trajectory length is ' + str(min(trajectoryLengths))
         if max(trajectoryLengths) < 4:
-            print 'max(trajectoryLengths) < 4'
+            # print 'max(trajectoryLengths) < 4'
             trajectoryStates = np.zeros((len(self.trajectories),4,5))
-            print trajectoryStates.shape
+            # print trajectoryStates.shape
         else:
-            print 'nothing'
+            # print 'nothing'
             trajectoryStates = np.zeros((len(self.trajectories),max(trajectoryLengths),5))
-            print trajectoryStates.shape
+            # print trajectoryStates.shape
         if min(trajectoryLengths) < 4:
-            print 'min(trajectoryLengths) < 4'
+            # print 'min(trajectoryLengths) < 4'
             trajectoryLengths = [4 for t in self.trajectories]
         # else:
         #   trajectoryStates = np.zeros((len(self.trajectories),max(trajectoryLengths),5))
@@ -325,12 +340,12 @@ class PI_RRT(object):
 
         for k, trajectory in enumerate(self.trajectories):  
             # print 'trajectory ' + str(k)
-            try:        
-                trajectoryStates[k,:len(trajectory),:] = self.contructStatesMatrix(trajectory)
-            except:
-                print trajectoryStates[k,:len(trajectory),:].shape
-                print self.contructStatesMatrix(trajectory).shape
-                print len(trajectory)
+            # try:        
+            trajectoryStates[k,:len(trajectory),:] = self.constructStatesMatrix(trajectory)
+            # except:
+                # print trajectoryStates[k,:len(trajectory),:].shape
+                # print self.contructStatesMatrix(trajectory).shape
+                # print len(trajectory)
             # for i,v in enumerate(trajectory):
                 # trajectoryStates[k,i,0] = v.x
                 # trajectoryStates[k,i,1] = v.y
@@ -377,7 +392,7 @@ class PI_RRT(object):
 
         U = np.zeros(min(trajectoryLengths))
         t = np.zeros(min(trajectoryLengths))
-        print 'min trajectory length is ' + str(min(trajectoryLengths))
+        # print 'min trajectory length is ' + str(min(trajectoryLengths))
         for i in range(min(trajectoryLengths)):
             U[i] = controlSpline(self.RRT.dt*i) + dU[i]
             t[i] = self.RRT.dt*i
@@ -445,8 +460,8 @@ class PI_RRT(object):
             dx = self.RRT.velocity*cos(self.path[-1].theta)
             dy = self.RRT.velocity*sin(self.path[-1].theta)         
             dtheta = (1/self.r)*controlSpline(self.RRT.dt*i)
-            randomOffset = np.random.randn()*10
-            dtheta += (1/self.r)*self.alpha*sqrt(self.RRT.dt)*randomOffset
+            # randomOffset = np.random.randn()*10
+            # dtheta += (1/self.r)*self.alpha*sqrt(self.RRT.dt)*randomOffset
             self.path.append(Vertex(self.path[-1].x+self.dt*dx,self.path[-1].y+self.dt*dy,self.path[-1].theta+self.dt*dtheta))
             self.plotStore.path = self.path
 

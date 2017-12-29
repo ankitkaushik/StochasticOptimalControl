@@ -139,8 +139,9 @@ class RRTStar(object):
         obstacleFreeVertices = False
         count = 0
         print stopCount
-        if count<stopCount:
-            while obstacleFreeVertices == False: 
+        
+        while obstacleFreeVertices == False: 
+            if count<stopCount:
                 vRand = self.sample()   
                 self.sampledPoints.append(vRand)
                 if self.plotStore is not None:
@@ -193,11 +194,13 @@ class RRTStar(object):
 
                 count += 1
                 print count
-        else:
-            cPickle.dump(self.vertices, open('RRTStarVertices.p','wb'))
-            cPickle.dump(self.sampledPoints, open('RRTStarSampledPoints.p','wb'))
-            print self.vInit.getState()
-            sys.exit()
+                print stopCount
+                print count<stopCount
+            else:
+                cPickle.dump(self.vertices, open('RRTStarVertices.p','wb'))
+                cPickle.dump(self.sampledPoints, open('RRTStarSampledPoints.p','wb'))
+                print self.vInit.getState()
+                sys.exit()
 
     def sample(self):
 
