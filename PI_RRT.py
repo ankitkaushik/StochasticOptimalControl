@@ -4,6 +4,7 @@ from copy import deepcopy
 from math import sqrt, cos, sin, atan, atan2, pi, tan, fabs, exp
 import numpy as np
 from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import interp1d
 
 from Vertex import Vertex
 from RRT import RRT
@@ -76,7 +77,7 @@ class PI_RRT(object):
         print 'len of allRRTVertices is ' + str(len(self.allRRTVertices))
 
     def runRRTMP(self,trajNum):
-    	print 'trajectory ' + str(trajNum)
+        print 'trajectory ' + str(trajNum)
         if self.useRRTStar:
             RRT = RRTStar(self.path[-1],self.vGoal,self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r,self.plotStore)
         else:
@@ -159,8 +160,8 @@ class PI_RRT(object):
             print 'len of allRRTVertices is ' + str(len(self.allRRTVertices))
 
     def generateTrajectoriesMP(self):
-    	pool = mp.Pool()
-    	self.trajectories = pool.map(self.runRRTMP,range(5))
+        pool = mp.Pool()
+        self.trajectories = pool.map(self.runRRTMP,range(5))
 
     def computeVariation(self):
 
@@ -183,7 +184,8 @@ class PI_RRT(object):
 
     def constructStatesMatrix(self,path):
 
-        if len(path) == 2:          
+        if len(path) == 2:   
+            print 'len path 2'     
             vertices = [v for v in path]
             states = np.zeros((4,5))
             states[0,0] = vertices[0].x
@@ -203,6 +205,7 @@ class PI_RRT(object):
             states[1:3,4] = np.linspace(states[0,4], states[3,4], num=4)[1:3]
 
         if len(path) == 3:
+            print 'len path 3'    
             vertices = [v for v in path]
             if self.RRT.getDistance(vertices[0],vertices[1]) > self.RRT.getDistance(vertices[0],vertices[2]):
                 if self.RRT.getDistance(vertices[0],vertices[1]) > self.RRT.getDistance(vertices[1],vertices[2]):
@@ -231,7 +234,8 @@ class PI_RRT(object):
             states[1:3,3] = self.RRT.dt*np.array([1,2])
             states[1:3,4] = np.linspace(states[0,4], states[3,4], num=4)[1:3]
 
-        else:
+        elif len(path) > 3:
+            print 'len path is ' + str(len(path))    
             states = np.zeros((len(path),5))
             for i,v in enumerate(path):
                 states[i,0] = v.x
@@ -240,6 +244,7 @@ class PI_RRT(object):
                 states[i,3] = self.RRT.dt*i
                 states[i,4] = v.controlInput
 
+        print states.shape
         return states
 
 #       if len(self.RRT.pathReversed) == 2:         
@@ -313,7 +318,9 @@ class PI_RRT(object):
         rrtStates = self.constructStatesMatrix(self.RRT.pathReversed)
 
         # try:      
-        controlSpline = UnivariateSpline(rrtStates[:,3], rrtStates[:,4])
+        # controlSpline = UnivariateSpline(rrtStates[:,3], rrtStates[:,4])
+        controlSpline = interp1d(rrtStates[:,3], rrtStates[:,4],fill_value="extrapolate")
+        
         # except:
         #   print len(self.RRT.pathReversed)
         #   sys.exit()
@@ -341,7 +348,8 @@ class PI_RRT(object):
         for k, trajectory in enumerate(self.trajectories):  
             # print 'trajectory ' + str(k)
             # try:        
-            trajectoryStates[k,:len(trajectory),:] = self.constructStatesMatrix(trajectory)
+            print 'len(trajectory) is: ' + str(len(trajectory))
+            trajectoryStates[k,:max(len(trajectory),4),:] = self.constructStatesMatrix(trajectory)
             # except:
                 # print trajectoryStates[k,:len(trajectory),:].shape
                 # print self.contructStatesMatrix(trajectory).shape
@@ -387,8 +395,10 @@ class PI_RRT(object):
         dU = np.zeros(min(trajectoryLengths))
         # print 'dU: ' + str(dU)
         for k, trajectory in enumerate(self.trajectories):
+            print weights[k]*self.alpha*trajectoryStates[k,:min(trajectoryLengths),4]/sqrt(self.RRT.dt)
             dU += weights[k]*self.alpha*trajectoryStates[k,:min(trajectoryLengths),4]/sqrt(self.RRT.dt)
-            # print 'dU: ' + str(dU)
+            print 'dU: ' + str(dU)
+        # sys.exit()
 
         U = np.zeros(min(trajectoryLengths))
         t = np.zeros(min(trajectoryLengths))
@@ -452,16 +462,19 @@ class PI_RRT(object):
 
     def executeControl2(self,U,t):  
 
-        print t
-        print U
-        controlSpline = UnivariateSpline(t, U)      
+        # print t
+        # print U
+        # controlSpline = UnivariateSpline(t, U)
+        controlSpline = interp1d(t, U,fill_value="extrapolate")      
 
-        for i in range(int(self.tHorizon/self.RRT.dt)):             
+        for i in range(int(self.tHorizon/self.RRT.dt)):
             dx = self.RRT.velocity*cos(self.path[-1].theta)
-            dy = self.RRT.velocity*sin(self.path[-1].theta)         
+            dy = self.RRT.velocity*sin(self.path[-1].theta)   
             dtheta = (1/self.r)*controlSpline(self.RRT.dt*i)
-            # randomOffset = np.random.randn()*10
-            # dtheta += (1/self.r)*self.alpha*sqrt(self.RRT.dt)*randomOffset
+            randomOffset = np.random.randn()*10
+            dtheta += (1/self.r)*self.alpha*sqrt(self.RRT.dt)*randomOffset
+            # dx = self.RRT.velocity*cos(dtheta)
+            # dy = self.RRT.velocity*sin(dtheta)   
             self.path.append(Vertex(self.path[-1].x+self.dt*dx,self.path[-1].y+self.dt*dy,self.path[-1].theta+self.dt*dtheta))
             self.plotStore.path = self.path
 

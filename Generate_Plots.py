@@ -145,7 +145,7 @@ def plotObstacles(RRT):
 
 # Create directory to save files
 
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/debug10/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/debug13/'
 print saveDir
 
 try:
@@ -157,6 +157,7 @@ except OSError as e:
 # RRT variables
 
 vInit = Vertex(-9.,0.,0.,0.,0.,0)
+# vInit = Vertex(-4.405433256434646, 0.1731660975960875, 0.15843846552639818, 0.0, 0.0, -1)
 # vInit = Vertex(-2.3075439748551645, -1.2146455385001258, -0.12745521375963603, 0.0, 0.0, -1)
 # vInit = Vertex(-2.1438493535428647, -0.6990585839364634, -0.023160198189374023, 0.0, 0.0, -1)
 # vInit = Vertex(-3.274496147453313, -0.4380171488751353, -0.072003545741959094, 0.0, 0.0, -1)
@@ -172,7 +173,7 @@ vInit = Vertex(-9.,0.,0.,0.,0.,0)
 # vInit = Vertex(-5.,0.,0.,0.,0.,0)
 vGoal = Vertex(9.,0.,0.,10.,0.,0)
 dt = 0.1
-velocity = 5.0
+velocity = 2.0
 wheelBase = 2.0
 steeringRatio = 1
 alpha = 0.25
@@ -188,18 +189,20 @@ pi_rrt = PI_RRT(vInit,vGoal,saveDir,useRRTStar=True)
 pirrtTimes = []
 i = 0
 while pi_rrt.reachedGoal(pi_rrt.path[-1]) is False:
+    print pi_rrt.path[-1].getState()
     startTime = time.time()    
     print 'COUNT '+ str(i)
     pi_rrt.runRRT()
-    pi_rrt.generateTrajectoriesMP()
-    try:
-        pi_rrt.executeControl2(*pi_rrt.computeVariation2())
-        print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
-        pirrtTimes.append(time.time()-startTime)
-        print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
-        i += 1
-    except:
-        for v in pi_rrt.RRT.pathReversed:
-            pi_rrt.path.append(v)
-
+    pi_rrt.generateTrajectories2()
+    # try:
+    pi_rrt.executeControl2(*pi_rrt.computeVariation2())
+    print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
+    pirrtTimes.append(time.time()-startTime)
+    print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
+    i += 1
+    print pi_rrt.path[-1].getState()
+    # except:
+    #     for v in pi_rrt.RRT.pathReversed:
+    #         pi_rrt.path.append(v)
+pi_rrt.RRT.plotAll()
 # rc = call(".//home/ankit/Documents/Thesis/createVideo.sh",shell=True)

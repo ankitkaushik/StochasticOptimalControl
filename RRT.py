@@ -142,7 +142,7 @@ class RRT(object):
             # print 'vRand: ' + str(vRand.getState())
             vNearest, vNearestIndex = self.getNN(vRand)
             # print 'vNearest: ' + str(vNearest.getState())
-            newVertices = self.steer2(vNearest, vNearestIndex, vRand)
+            newVertices = self.steer(vNearest, vNearestIndex, vRand)
             # print newVertices
             obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
             print obstacleFreeVertices

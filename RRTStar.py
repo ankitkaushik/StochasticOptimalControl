@@ -149,7 +149,11 @@ class RRTStar(object):
                 # print 'vRand: ' + str(vRand.getState())
                 vNearest, vNearestIndex = self.getNN(vRand)
                 # print 'vNearest: ' + str(vNearest.getState())
-                newVertices = self.steer2(vNearest, vNearestIndex, vRand)
+                newVertices = self.steer(vNearest, vNearestIndex, vRand)
+                newVertices = [Vertex(*v) for v in newVertices]
+                print max([v.controlInput for v in newVertices])
+                print min([v.controlInput for v in newVertices])
+                # sys.exit()
                 # print [v.getState() for v in newVertices]
                 # print len(newVertices)
                 obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
@@ -333,7 +337,8 @@ class RRTStar(object):
         dtheta = self.computeSteeringAngle(vRand,vNearest)
         newVertex = np.zeros(7)
         newVertex[0:2] = np.array([vNearest.x,vNearest.y]) + self.dt*np.array([dx, dy])
-        newVertex[2] = dtheta
+        # newVertex[2] = dtheta
+        newVertex[2] = (self.alpha/self.r)*dtheta
         newVertex[3] = vNearest.time+self.dt
         newVertex[4] = dtheta
         newVertex[5] = vNearestIndex
@@ -347,7 +352,7 @@ class RRTStar(object):
             dtheta = self.computeSteeringAngle(vRand,newVertices[-1])
             newVertex = np.zeros(7)
             newVertex[0:2] = np.array([newVertices[-1].x,newVertices[-1].y]) + self.dt*np.array([dx, dy])
-            newVertex[2] = dtheta
+            newVertex[2] = (self.alpha/self.r)*dtheta
             newVertex[3] = newVertices[-1].time+self.dt
             newVertex[4] = dtheta
             newVertex[5] = newVertexIndex+i-2
@@ -359,7 +364,7 @@ class RRTStar(object):
         # sys.exit()
         return newVertices
 
-    def extractPath(self, stopCount=np.inf, stopAtGoal=True,stopCountExtend=100):
+    def extractPath(self, stopCount=10000, stopAtGoal=True,stopCountExtend=1000):
         self.path = []
         self.iterationCount = 0
         lastVertex = self.vertices[-1]
@@ -367,7 +372,8 @@ class RRTStar(object):
             startTime = time.time()
             while self.reachedGoal(lastVertex) == False:
                 if self.iterationCount > stopCount:
-                    break
+                    cPickle.dump(self.vertices, open('RRTStarVertices.p','wb'))
+                    cPickle.dump(self.sampledPoints, open('RRTStarSampledPoints.p','wb'))
                     print self.vInit.getState()
                     sys.exit()
                 self.extend(stopCountExtend)
