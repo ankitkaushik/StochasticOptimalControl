@@ -317,12 +317,12 @@ class RRTStar(object):
         L = np.sqrt(xDistance**2 + yDistance**2)
         alpha1 = atan2(yDistance,xDistance)
 
-        if alpha1<0:
-            alpha2 = alpha1+(2*pi) - currentVertex.theta
-        else:
-            alpha2 = alpha1 - currentVertex.theta
+        # if alpha1<0:
+        #     alpha2 = alpha1+(2*pi) - currentVertex.theta
+        # else:
+        #     alpha2 = alpha1 - currentVertex.theta
 
-        omega = 2*self.velocity*sin(alpha2)/L
+        # omega = 2*self.velocity*sin(alpha2)/L
         return alpha1
 
     def steer2(self, vNearest, vNearestIndex, vRand):
@@ -334,13 +334,14 @@ class RRTStar(object):
         # First new vertex
         dx = self.velocity*cos(vNearest.theta)
         dy = self.velocity*sin(vNearest.theta)              
-        dtheta = self.computeSteeringAngle(vRand,vNearest)
+        dtheta = self.computeSteeringAngle(vRand,vNearest)/self.r
+        randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
+        dtheta += (self.alpha/self.r)*randomOffset
         newVertex = np.zeros(7)
         newVertex[0:2] = np.array([vNearest.x,vNearest.y]) + self.dt*np.array([dx, dy])
-        # newVertex[2] = dtheta
-        newVertex[2] = (self.alpha/self.r)*dtheta
+        newVertex[2] = dtheta
         newVertex[3] = vNearest.time+self.dt
-        newVertex[4] = dtheta
+        newVertex[4] = dtheta*self.r
         newVertex[5] = vNearestIndex
         newVertex[6] = vNearest.cost+sqrt((vNearest.x - newVertex[0])**2 + (vNearest.y - newVertex[1])**2)
         newVertices.append(Vertex(*newVertex))
@@ -349,12 +350,14 @@ class RRTStar(object):
         for i in range(1,numSteps+1):                
             dx = self.velocity*cos(newVertices[-1].theta)
             dy = self.velocity*sin(newVertices[-1].theta)               
-            dtheta = self.computeSteeringAngle(vRand,newVertices[-1])
+            dtheta = self.computeSteeringAngle(vRand,vNearest)/self.r
+            randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
+            dtheta += (self.alpha/self.r)*randomOffset
             newVertex = np.zeros(7)
             newVertex[0:2] = np.array([newVertices[-1].x,newVertices[-1].y]) + self.dt*np.array([dx, dy])
-            newVertex[2] = (self.alpha/self.r)*dtheta
+            newVertex[2] = dtheta
             newVertex[3] = newVertices[-1].time+self.dt
-            newVertex[4] = dtheta
+            newVertex[4] = dtheta*self.r
             newVertex[5] = newVertexIndex+i-2
             newVertex[6] = newVertices[-1].cost+sqrt((newVertices[-1].x - newVertex[0])**2 + (newVertices[-1].y - newVertex[1])**2)
             # print newVertex

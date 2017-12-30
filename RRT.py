@@ -276,12 +276,12 @@ class RRT(object):
         L = np.sqrt(xDistance**2 + yDistance**2)
         alpha1 = atan2(yDistance,xDistance)
 
-        if alpha1<0:
-            alpha2 = alpha1+(2*pi) - currentVertex.theta
-        else:
-            alpha2 = alpha1 - currentVertex.theta
+        # if alpha1<0:
+        #     alpha2 = alpha1+(2*pi) - currentVertex.theta
+        # else:
+        #     alpha2 = alpha1 - currentVertex.theta
 
-        omega = 2*self.velocity*sin(alpha2)/L
+        # omega = 2*self.velocity*sin(alpha2)/L
         return alpha1
 
     def steer2(self, vNearest, vNearestIndex, vRand):
@@ -293,12 +293,14 @@ class RRT(object):
         # First new vertex
         dx = self.velocity*cos(vNearest.theta)
         dy = self.velocity*sin(vNearest.theta)              
-        dtheta = self.computeSteeringAngle(vRand,vNearest)
+        dtheta = self.computeSteeringAngle(vRand,vNearest)/self.r
+        randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
+        dtheta += (self.alpha/self.r)*randomOffset
         newVertices[0,0:2] = np.array([vNearest.x,vNearest.y]) + self.dt*np.array([dx, dy])
         # newVertices[0,2] = vNearest.theta+dtheta
         newVertices[0,2] = dtheta
         newVertices[0,3] = vNearest.time+self.dt
-        newVertices[0,4] = dtheta
+        newVertices[0,4] = dtheta*self.r
         newVertices[0,5] = vNearestIndex
         newVertexIndex = len(self.vertices)
         currentVertex = Vertex(*newVertices[0])
@@ -307,12 +309,14 @@ class RRT(object):
             print i              
             dx = self.velocity*cos(newVertices[i-1,2])
             dy = self.velocity*sin(newVertices[i-1,2])               
-            dtheta = self.computeSteeringAngle(vRand,currentVertex)
+            dtheta = self.computeSteeringAngle(vRand,vNearest)/self.r
+            randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
+            dtheta += (self.alpha/self.r)*randomOffset
             newVertices[i,0:2] = newVertices[i-1,0:2] + self.dt*np.array([dx, dy])
             # newVertices[i,2] = newVertices[i-1,2]+dtheta3
             newVertices[i,2] = dtheta
             newVertices[i,3] = vNearest.time+i*self.dt
-            newVertices[i,4] = dtheta
+            newVertices[i,4] = dtheta*self.r
             newVertices[i,5] = newVertexIndex+i-2
             currentVertex = Vertex(*newVertices[i])
 
