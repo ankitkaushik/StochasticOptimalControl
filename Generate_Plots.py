@@ -145,7 +145,7 @@ def plotObstacles(RRT):
 
 # Create directory to save files
 
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/debug13/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/final/'
 print saveDir
 
 try:
@@ -155,8 +155,9 @@ except OSError as e:
         raise
 
 # RRT variables
-
 vInit = Vertex(-9.,0.,0.,0.,0.,0)
+# vInit = Vertex(3.556400689218416, 1.1122687085435525, 0.27198546370193616, 0.0, 0.0, -1)
+# vInit = Vertex(-2.322802078480477, -1.5682812432844735, -0.43168166012273512, 0.0, 0.0, -1)
 # Latest fail on XPS
 # vInit = Vertex(2.333759289549664, -1.0325296926557328, -0.35328948476828181, 0.0, 0.0, -1)
 
@@ -175,37 +176,34 @@ vInit = Vertex(-9.,0.,0.,0.,0.,0)
 # vInit = Vertex(-7.,-2.,0.,0.,0.,0)
 # vInit = Vertex(-5.,0.,0.,0.,0.,0)
 vGoal = Vertex(9.,0.,0.,10.,0.,0)
-dt = 0.1
-velocity = 2.0
-wheelBase = 2.0
-steeringRatio = 1
 alpha = 0.25
-r = 4.0
 
-# plotStore = plotStore(vInit,vGoal,saveDir)
+plotStore = plotStore(vInit,vGoal,saveDir)
 # rrt = RRTStar(vInit,vGoal,dt,velocity,wheelBase,steeringRatio,alpha,r,plotStore,plottingInterval='end')
-# rrt = RRT(vInit,vGoal,dt,velocity,wheelBase,steeringRatio,alpha,r,plotStore,plottingInterval='notend')
-# rrt.createObstacles(obstacleType='single')
-# rrt.extractPath()
+rrt = RRT(vInit,vGoal,alpha=alpha,plotStore=plotStore,plottingInterval='notend')
+rrt.createObstacles(obstacleType='single')
+rrt.extractPath()
+# cPickle.dump(rrt, open('RRT.p','wb'))
 
-pi_rrt = PI_RRT(vInit,vGoal,saveDir,useRRTStar=True)
-pirrtTimes = []
-i = 0
-while pi_rrt.reachedGoal(pi_rrt.path[-1]) is False:
-    print pi_rrt.path[-1].getState()
-    startTime = time.time()    
-    print 'COUNT '+ str(i)
-    pi_rrt.runRRT()
-    pi_rrt.generateTrajectories2()
-    # try:
-    pi_rrt.executeControl2(*pi_rrt.computeVariation2())
-    print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
-    pirrtTimes.append(time.time()-startTime)
-    print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
-    i += 1
-    print pi_rrt.path[-1].getState()
-    # except:
-    #     for v in pi_rrt.RRT.pathReversed:
-    #         pi_rrt.path.append(v)
-pi_rrt.RRT.plotAll()
+# pi_rrt = PI_RRT(vInit,vGoal,alpha,saveDir,useRRTStar=False)
+# pirrtTimes = []
+# i = 0
+# while pi_rrt.reachedGoal(pi_rrt.path[-1]) is False:
+#     print pi_rrt.path[-1].getState()
+#     startTime = time.time()    
+#     print 'COUNT '+ str(i)
+#     if pi_rrt.runRRT():
+#         if pi_rrt.generateTrajectories2():
+#             pi_rrt.executeControl2(*pi_rrt.computeVariation2())
+#             print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
+#             pirrtTimes.append(time.time()-startTime)
+#             print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
+#             i += 1
+#             print pi_rrt.path[-1].getState()
+#         else:
+#             del pi_rrt.path[-1]
+#     else:
+#         del pi_rrt.path[-1]
+
+# pi_rrt.RRT.plotAll()
 # rc = call(".//home/ankit/Documents/Thesis/createVideo.sh",shell=True)

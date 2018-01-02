@@ -20,14 +20,14 @@ import multiprocessing as mp
 
 class PI_RRT(object):
 
-    def __init__(self,vInit,vGoal,plotSaveDir,useRRTStar=True):
+    def __init__(self,vInit,vGoal,alpha,plotSaveDir,useRRTStar=True):
 
         self.vInit = vInit
         self.vGoal = vGoal
         self.goalDist = 1
         self.path = [vInit]
-        self.alpha = 0.25
-        self.r = 4.0
+        self.alpha = alpha
+        self.r = 1.0
         self.Lambda = 10
         self.M = 5
         self.p = -1/(self.alpha**2)
@@ -38,12 +38,12 @@ class PI_RRT(object):
                             [  0.,   10.,   0.],
                             [  0.,   0.,   10.]])
         self.R = self.Lambda/(self.alpha**2)
-        self.tHorizon = 0.5
-        self.regCoef = 1000
+        self.tHorizon = 1
+        self.regCoef = 1
         
         #RRT params
         self.dt = 0.1
-        self.velocity = 2.3
+        self.velocity = 5.0
         self.wheelBase = 2.0
         self.steeringRatio = 1
 
@@ -64,17 +64,22 @@ class PI_RRT(object):
             return False
 
     def runRRT(self):
+        successFlag = True
         print 'runRRT method called'
         if self.useRRTStar:
             self.RRT = RRTStar(self.path[-1],self.vGoal,self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r,self.plotStore)
         else:
             self.RRT = RRT(self.path[-1],self.vGoal,self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r,self.plotStore)
         print 'RRT initialized'
-        self.RRT.extractPath()
-        print 'RRT path extracted'
-        self.allRRTVertices.extend(self.RRT.vertices)
-        self.sampledPoints.extend(self.RRT.sampledPoints)
-        print 'len of allRRTVertices is ' + str(len(self.allRRTVertices))
+        if self.RRT.extractPath():
+            print 'RRT path extracted'
+            self.allRRTVertices.extend(self.RRT.vertices)
+            self.sampledPoints.extend(self.RRT.sampledPoints)
+            print 'len of allRRTVertices is ' + str(len(self.allRRTVertices))
+            return successFlag
+        else:
+            successFlag = False
+            return successFlag
 
     def runRRTMP(self,trajNum):
         print 'trajectory ' + str(trajNum)
@@ -145,7 +150,8 @@ class PI_RRT(object):
             self.dws.append(dws)
 
     def generateTrajectories2(self):
-        
+
+        successFlag = True
         self.trajectories = []
         for i in range(self.M):
             print 'doing rrt'
@@ -153,11 +159,16 @@ class PI_RRT(object):
                 newRRT = RRTStar(self.RRT.vInit,self.RRT.vGoal,self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r,self.plotStore)
             else:
                 newRRT = RRT(self.RRT.vInit,self.RRT.vGoal,self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r,self.plotStore)
-            newRRT.extractPath()
-            self.trajectories.append(newRRT.pathReversed)
-            self.allRRTVertices.extend(newRRT.vertices)
-            self.sampledPoints.extend(self.RRT.sampledPoints)
-            print 'len of allRRTVertices is ' + str(len(self.allRRTVertices))
+            if newRRT.extractPath():
+                print 'RRT path extracted'
+                self.trajectories.append(newRRT.pathReversed)
+                self.allRRTVertices.extend(newRRT.vertices)
+                self.sampledPoints.extend(self.RRT.sampledPoints)
+                print 'len of allRRTVertices is ' + str(len(self.allRRTVertices))                
+            else:
+                successFlag = False
+                return successFlag 
+        return successFlag           
 
     def generateTrajectoriesMP(self):
         pool = mp.Pool()
@@ -366,7 +377,8 @@ class PI_RRT(object):
             for i,v in enumerate(trajectory[:-1]):
                 pathCosts[i] += trajectoryStates[k,i,0:3].dot(self.Q).dot(trajectoryStates[k,i,0:3].T)
                 pathCosts[i] += 0.5*controlSpline(trajectoryStates[k,i,3])*self.R*controlSpline(trajectoryStates[k,i,3])
-                noiseCosts[i] += controlSpline(trajectoryStates[k,i,3])*self.alpha*trajectoryStates[k,i,4]/sqrt(self.RRT.dt)
+                # noiseCosts[i] += controlSpline(trajectoryStates[k,i,3])*self.alpha*trajectoryStates[k,i,4]/sqrt(self.RRT.dt)
+                noiseCosts[i] += controlSpline(trajectoryStates[k,i,3])*trajectoryStates[k,i,4]
             # print 'pathCosts: ' + str(pathCosts.shape)
             # print 'noiseCosts: ' + str(noiseCosts.shape)
             # totalCost = np.trapz(trajectoryStates[k,:len(trajectory)-1,3], pathCosts[:-1])
@@ -395,17 +407,20 @@ class PI_RRT(object):
         dU = np.zeros(min(trajectoryLengths))
         # print 'dU: ' + str(dU)
         for k, trajectory in enumerate(self.trajectories):
-            print weights[k]*self.alpha*trajectoryStates[k,:min(trajectoryLengths),4]/sqrt(self.RRT.dt)
-            dU += weights[k]*self.alpha*trajectoryStates[k,:min(trajectoryLengths),4]/sqrt(self.RRT.dt)
+            # dU += weights[k]*self.alpha*trajectoryStates[k,:min(trajectoryLengths),4]/sqrt(self.RRT.dt)
+            dU += weights[k]*trajectoryStates[k,:min(trajectoryLengths),4]
             print 'dU: ' + str(dU)
         # sys.exit()
 
+        minTrajectoryIndex = trajectoryLengths.index(min(trajectoryLengths))
         U = np.zeros(min(trajectoryLengths))
         t = np.zeros(min(trajectoryLengths))
         # print 'min trajectory length is ' + str(min(trajectoryLengths))
         for i in range(min(trajectoryLengths)):
-            U[i] = controlSpline(self.RRT.dt*i) + dU[i]
-            t[i] = self.RRT.dt*i
+            # U[i] = controlSpline(self.RRT.dt*i) + dU[i]
+            U[i] = controlSpline(trajectoryStates[minTrajectoryIndex,i,3]) + dU[i]            
+            # t[i] = self.RRT.dt*i
+            t[i] = trajectoryStates[minTrajectoryIndex,i,3]
 
         return U,t
 
@@ -465,18 +480,28 @@ class PI_RRT(object):
         # print t
         # print U
         # controlSpline = UnivariateSpline(t, U)
-        controlSpline = interp1d(t, U,fill_value="extrapolate")      
+        controlSpline = interp1d(t, U,fill_value="extrapolate")   
+        newPathVertices = [self.path[-1]]   
 
-        for i in range(int(self.tHorizon/self.RRT.dt)):
-            dx = self.RRT.velocity*cos(self.path[-1].theta)
-            dy = self.RRT.velocity*sin(self.path[-1].theta)   
+        for i in range(int(self.tHorizon/self.dt)):
+            dx = self.velocity*cos(newPathVertices[-1].theta)
+            dy = self.velocity*sin(newPathVertices[-1].theta)   
             dtheta = (1/self.r)*controlSpline(self.RRT.dt*i)
-            randomOffset = np.random.randn()*10
-            dtheta += (1/self.r)*self.alpha*sqrt(self.RRT.dt)*randomOffset
+            # randomOffset = np.random.randn()*10
+            # dtheta += (1/self.r)*self.alpha*sqrt(self.RRT.dt)*randomOffset
+            randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
+            dtheta += (self.alpha/self.r)*randomOffset
             # dx = self.RRT.velocity*cos(dtheta)
-            # dy = self.RRT.velocity*sin(dtheta)   
-            self.path.append(Vertex(self.path[-1].x+self.dt*dx,self.path[-1].y+self.dt*dy,self.path[-1].theta+self.dt*dtheta))
-            self.plotStore.path = self.path
+            # dy = self.RRT.velocity*sin(dtheta)
+            if self.RRT.obstacleFree(Vertex(self.path[-1].x+self.dt*dx,self.path[-1].y+self.dt*dy,self.path[-1].theta+self.dt*dtheta),self.path[-1]) == True:
+                newPathVertices.append(Vertex(self.path[-1].x+self.dt*dx,self.path[-1].y+self.dt*dy,self.path[-1].theta+self.dt*dtheta))
+            else:
+                newPathVertices = []
+                break
+
+        self.path.extend(newPathVertices[1:])
+        self.plotStore.path = self.path
+
 
     def run(self):
         self.runRRT()

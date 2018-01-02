@@ -367,7 +367,7 @@ class RRTStar(object):
         # sys.exit()
         return newVertices
 
-    def extractPath(self, stopCount=10000, stopAtGoal=True,stopCountExtend=1000):
+    def extractPath(self, stopCount=1000, stopAtGoal=True,stopCountExtend=10000):
         self.path = []
         self.iterationCount = 0
         lastVertex = self.vertices[-1]
