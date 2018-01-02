@@ -9,3 +9,5 @@ class plotStore(object):
 		self.path = []
 		self.plotIndex = 0
 		self.plotSaveDir = plotSaveDir
+		self.RRTcompletionTimes = []
+		self.RRTcompletionIterations = []

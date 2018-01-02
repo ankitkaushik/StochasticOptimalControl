@@ -19,7 +19,7 @@ pylab.rcParams.update(params)
 
 class RRT(object):
 
-    def __init__(self, vInit, vGoal, dt=0.1, velocity=2.3, wheelBase= 2.0, steeringRatio=1, alpha=0.25, r=1.0, plotStore=None,plottingInterval='end'):
+    def __init__(self, vInit, vGoal, dt=0.1, velocity=2.3, wheelBase= 2.0, steeringRatio=1, alpha=0.25, r=1.0, plotStore=None,plottingInterval='end',obstacleType='single'):
 
         self.vInit = vInit 
         self.vGoal = vGoal
@@ -38,8 +38,8 @@ class RRT(object):
         self.r = r
 
         self.sampledPoints = []
-
-        self.createObstacles(obstacleType='double')
+        self.obstacleType = obstacleType
+        self.createObstacles(self.obstacleType)
 
         print 'rrt initialized with ' + str(self.vInit.getState())
 
@@ -53,9 +53,7 @@ class RRT(object):
         fig = plt.figure(figsize=(20,20))
         plt.title('Sampling-based path planning using stochastic optimal control',fontsize=20)
         plt.axis('equal')  
-        plt.grid(1)
-        initPlot = plt.scatter(self.plotStore.vInit.x, self.plotStore.vInit.y, c = 'r')     
-        goalPlot = plt.scatter(self.plotStore.vGoal.x, self.plotStore.vGoal.y, c = 'g')    
+        plt.grid(1)   
         for obstacle in self.obstacles:    
             x = []
             y = []
@@ -79,10 +77,54 @@ class RRT(object):
         pirrtPathPlot = plt.plot([v.x for v in self.plotStore.path], [v.y for v in self.plotStore.path], '-r',linewidth=7.0)
         rrtVerticesPlot = plt.scatter([v.x for v in self.plotStore.allRRTVertices],[v.y for v in self.plotStore.allRRTVertices],c='cyan')
         rrtSampledPointsPlot = plt.scatter([v.x for v in self.plotStore.sampledPoints],[v.y for v in self.plotStore.sampledPoints],c='orange')
+        initPlot = plt.scatter(self.plotStore.vInit.x, self.plotStore.vInit.y, c = 'r')     
+        goalPlot = plt.scatter(self.plotStore.vGoal.x, self.plotStore.vGoal.y, c = 'g') 
         plt.legend([initPlot,goalPlot,pirrtPathPlot,rrtVerticesPlot,rrtSampledPointsPlot], ['Start', 'Goal','PIRRT Path','Vertices','Sampled Points'], loc=3)
         plt.grid()
-        plt.savefig(self.plotStore.plotSaveDir+str(self.plotStore.plotIndex)+'.png')
+        plt.savefig(self.plotStore.plotSaveDir+'RRT_'+str(self.alpha)+'_'+self.obstacleType+'_'+str(self.plotStore.plotIndex)+'.png')
         self.plotStore.plotIndex += 1
+
+    def returnPlot(self,ax,n):
+          
+        for obstacle in self.obstacles:    
+            x = []
+            y = []
+        #     print obstacle.center[0] - obstacle.size[0]/2
+            x.extend([obstacle.center[0] - obstacle.size[0]/2])
+            x.extend([obstacle.center[0] - obstacle.size[0]/2])
+            x.extend([obstacle.center[0] + obstacle.size[0]/2])
+            x.extend([obstacle.center[0] + obstacle.size[0]/2])
+            x.extend([obstacle.center[0] - obstacle.size[0]/2])
+            y.extend([obstacle.center[1] - obstacle.size[1]/2])
+            y.extend([obstacle.center[1] + obstacle.size[1]/2])
+            y.extend([obstacle.center[1] + obstacle.size[1]/2])
+            y.extend([obstacle.center[1] - obstacle.size[1]/2])
+            y.extend([obstacle.center[1] - obstacle.size[1]/2])
+            obstaclePlot = ax.plot(x,y,'r')
+        # try:
+        if n == 1:
+            rrtPathPlot1 = ax.plot([v.x for v in self.pathReversed], [v.y for v in self.pathReversed],linewidth=3.0,color='#ff1493')
+        if n == 2:
+            rrtPathPlot2 = ax.plot([v.x for v in self.pathReversed], [v.y for v in self.pathReversed],linewidth=3.0,color='#0000ff')
+        if n == 3:
+            rrtPathPlot3 = ax.plot([v.x for v in self.pathReversed], [v.y for v in self.pathReversed],linewidth=3.0,color='#000000')
+        # rrtPathPlot.set_label('RRT_alpha_'+str(self.alpha))
+        # rrtPathPlot = plt.scatter([v.x for v in self.pathReversed], [v.y for v in self.pathReversed], c='blue')
+        # except:
+        #     pass
+        pirrtPathPlot = ax.plot([v.x for v in self.plotStore.path], [v.y for v in self.plotStore.path], '-r',linewidth=7.0)
+        rrtVerticesPlot = ax.scatter([v.x for v in self.plotStore.allRRTVertices],[v.y for v in self.plotStore.allRRTVertices],c='cyan')
+        rrtSampledPointsPlot = ax.scatter([v.x for v in self.plotStore.sampledPoints],[v.y for v in self.plotStore.sampledPoints],c='orange')
+        initPlot = ax.scatter(self.plotStore.vInit.x, self.plotStore.vInit.y, c = 'r')     
+        goalPlot = ax.scatter(self.plotStore.vGoal.x, self.plotStore.vGoal.y, c = 'g')
+        if n == 1:
+            ax.legend([initPlot,goalPlot,pirrtPathPlot,rrtVerticesPlot,rrtSampledPointsPlot,rrtPathPlot1], ['Start', 'Goal','PIRRT Path','Vertices','Sampled Points','Some1 '],loc=3)
+        if n == 2:
+            ax.legend([initPlot,goalPlot,pirrtPathPlot,rrtVerticesPlot,rrtSampledPointsPlot,rrtPathPlot2], ['Start', 'Goal','PIRRT Path','Vertices','Sampled Points','Some2'],loc=3)
+        if n == 3:
+            ax.legend([initPlot,goalPlot,pirrtPathPlot,rrtVerticesPlot,rrtSampledPointsPlot,rrtPathPlot3], ['Start', 'Goal','PIRRT Path','Vertices','Sampled Points','Some3'],loc=3)
+        
+        return ax
 
     def createObstacles(self,obstacleType='single'):
         self.obstacles = []
@@ -147,7 +189,7 @@ class RRT(object):
                 # print 'vRand: ' + str(vRand.getState())
                 vNearest, vNearestIndex = self.getNN(vRand)
                 # print 'vNearest: ' + str(vNearest.getState())
-                newVertices = self.steer(vNearest, vNearestIndex, vRand)
+                newVertices = self.steer2(vNearest, vNearestIndex, vRand)
                 # print newVertices
                 obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
                 print obstacleFreeVertices
@@ -172,6 +214,7 @@ class RRT(object):
                 #     self.vertices.append(Vertex(*newVertices[i]))
                 count += 1
             else:
+                print stopCount
                 successFlag = False
                 break                
 
@@ -193,8 +236,9 @@ class RRT(object):
 
     def steer(self, vNearest, vNearestIndex, vRand):
         
-        numSteps = np.random.randint(1,10)
-        numTries = 5
+        # numSteps = np.random.randint(1,10)
+        numSteps = 10
+        numTries = 1
 
         # endState = np.zeros(3)
         minDist = float('inf')
@@ -215,7 +259,7 @@ class RRT(object):
             newVertices[n,0,0:2] = np.array([vNearest.x,vNearest.y]) + self.dt*np.array([dx, dy])
             newVertices[n,0,2] = vNearest.theta + dtheta
             newVertices[n,0,3] = vNearest.time+self.dt
-            newVertices[n,0,4] = randomOffset
+            newVertices[n,0,4] = dtheta
             newVertices[n,0,5] = vNearestIndex
             newVertexIndex = len(self.vertices)
 
@@ -309,14 +353,16 @@ class RRT(object):
         randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
         # randomOffset = np.random.normal(0.0, self.dt)
         dtheta += (self.alpha/self.r)*randomOffset
-        dx = self.velocity*cos(dtheta)
-        dy = self.velocity*sin(dtheta)   
+        # dx = self.velocity*cos(dtheta)
+        dx = self.velocity*cos(vNearest.theta)
+        # dy = self.velocity*sin(dtheta)
+        dy = self.velocity*sin(vNearest.theta)      
         newVertices[0,0:2] = np.array([vNearest.x,vNearest.y]) + self.dt*np.array([dx, dy])
         # dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[0]))/self.r*self.dt
-        dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[0]))/self.r
-        randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
-        dtheta += (self.alpha/self.r)*randomOffset
-        newVertices[0,2] = dtheta
+        # dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[0]))/self.r
+        # randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
+        # dtheta += (self.alpha/self.r)*randomOffset
+        newVertices[0,2] = vNearest.theta+dtheta
         newVertices[0,3] = vNearest.time+self.dt
         newVertices[0,4] = dtheta
         newVertices[0,5] = vNearestIndex
@@ -331,12 +377,12 @@ class RRT(object):
             dx = self.velocity*cos(newVertices[i-1,2])
             dy = self.velocity*sin(newVertices[i-1,2])               
             newVertices[i,0:2] = newVertices[i-1,0:2] + self.dt*np.array([dx, dy])
-            # dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[i]))/self.r*self.dt
-            dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[i]))/self.r
+            dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[i-1]))/self.r*self.dt
+            # dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[i-1]))/self.r
             randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
             # randomOffset = np.random.normal(0.0, self.dt)
             dtheta += (self.alpha/self.r)*randomOffset
-            newVertices[i,2] = dtheta
+            newVertices[i,2] = newVertices[i-1,2]+dtheta
             newVertices[i,3] = newVertices[i-1,3]+(i*self.dt)
             newVertices[i,4] = dtheta
             newVertices[i,5] = newVertexIndex+i-1
@@ -423,6 +469,9 @@ class RRT(object):
                 else:
                     successFlag = False
                     return successFlag  
+
+            self.plotStore.RRTcompletionIterations.append(self.iterationCount)
+            self.plotStore.RRTcompletionTimes.append(time.time()-startTime)
 
             print 'path found in ' + str(self.iterationCount) + ' iterations'
             print 'path found in ' + str(time.time()-startTime) + ' s'

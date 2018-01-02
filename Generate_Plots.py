@@ -1,4 +1,5 @@
 import os, errno
+import sys
 import time
 from copy import deepcopy
 import cPickle
@@ -7,6 +8,7 @@ from subprocess import call
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from matplotlib.pyplot import plot, scatter, savefig
 import matplotlib.pylab as pylab
 params = {'legend.fontsize': 'xx-large',
@@ -16,6 +18,7 @@ params = {'legend.fontsize': 'xx-large',
          'xtick.labelsize':'xx-large',
          'ytick.labelsize':'xx-large'}
 pylab.rcParams.update(params)
+import numpy as np
 
 from Vertex import Vertex
 from RRT import RRT
@@ -143,29 +146,25 @@ def plotObstacles(RRT):
         y.extend([obstacle.center[1] - obstacle.size[1]/2])
         obstaclePlot = plot(x,y,'r')
 
-# Create directory to save files
-
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/final/'
-print saveDir
-
-try:
-    os.makedirs(saveDir)
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise
-
-# RRT variables
+# Variables
 vInit = Vertex(-9.,0.,0.,0.,0.,0)
+
+#Fail for double
+# vInit = Vertex(-5.003824576201526, -0.013088832596684832, 0.053600875067695924, 0.0, 0.0, -1)
+
 # vInit = Vertex(3.556400689218416, 1.1122687085435525, 0.27198546370193616, 0.0, 0.0, -1)
 # vInit = Vertex(-2.322802078480477, -1.5682812432844735, -0.43168166012273512, 0.0, 0.0, -1)
 # Latest fail on XPS
 # vInit = Vertex(2.333759289549664, -1.0325296926557328, -0.35328948476828181, 0.0, 0.0, -1)
 
+# v = vInit
+# v = Vertex(-2.2,1.25, -0.35328948476828181, 0.0, 0.0, -1)
+
 # vInit = Vertex(-4.405433256434646, 0.1731660975960875, 0.15843846552639818, 0.0, 0.0, -1)
 # vInit = Vertex(-2.3075439748551645, -1.2146455385001258, -0.12745521375963603, 0.0, 0.0, -1)
 # vInit = Vertex(-2.1438493535428647, -0.6990585839364634, -0.023160198189374023, 0.0, 0.0, -1)
 # vInit = Vertex(-3.274496147453313, -0.4380171488751353, -0.072003545741959094, 0.0, 0.0, -1)
-# vInit = Vertex(-2.8, -1.5, -0.072003545741959094, 0.0, 0.0, -1)
+# vInit = Vertex(-2.8, -1.2, -0.072003545741959094, 0.0, 0.0, -1)
 # vInit = Vertex(-2.1230469516087718, -0.28321651336500553, 0.093621076239903567, 0.0, 0.0, -1)
 # vInit = Vertex(3.5579065654977633, -0.19329584063790506, -0.025624273325923833, 0.0, 0.0, -1)
 # vInit = Vertex(-2.1230469516087718, -0.28321651336500553, 0.093621076239903567, 0.0, 0.0, -1)
@@ -176,14 +175,87 @@ vInit = Vertex(-9.,0.,0.,0.,0.,0)
 # vInit = Vertex(-7.,-2.,0.,0.,0.,0)
 # vInit = Vertex(-5.,0.,0.,0.,0.,0)
 vGoal = Vertex(9.,0.,0.,10.,0.,0)
-alpha = 0.25
 
-plotStore = plotStore(vInit,vGoal,saveDir)
+alphas = [0.25,0.5,1.0]
+obstacleTypes = ['single', 'double']
+
+# Create directory to save files
+
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRT_steer_uncontrolled/'
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRT_steer_controlled/'
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRTStar_steer_uncontrolled/'
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRTStar_steer_controlled/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/dummy/'
+
+print saveDir
+
+try:
+    os.makedirs(saveDir)
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+
+# plotStore = plotStore(vInit,vGoal,saveDir)
+
+# rrt = RRT(vInit,vGoal,alpha=alphas[0],plotStore=plotStore,plottingInterval='notend',obstacleType=obstacleTypes[1])
+# rrt.extractPath()
 # rrt = RRTStar(vInit,vGoal,dt,velocity,wheelBase,steeringRatio,alpha,r,plotStore,plottingInterval='end')
-rrt = RRT(vInit,vGoal,alpha=alpha,plotStore=plotStore,plottingInterval='notend')
-rrt.createObstacles(obstacleType='single')
-rrt.extractPath()
-# cPickle.dump(rrt, open('RRT.p','wb'))
+
+# for obstacleType in obstacleTypes:
+#     pls = plotStore(vInit,vGoal,saveDir)
+#     fig, ax = plt.subplots()
+#     fig.set_size_inches(20.0, 20.0)
+#     ax.set_title('Sampling-based path planning using stochastic optimal control',fontsize=20)
+#     ax.axis('equal')  
+#     ax.grid()    
+#     for i,alpha in enumerate(alphas):
+#         # rrt = RRT(vInit,vGoal,alpha=alpha,plotStore=pls,plottingInterval='notend',obstacleType=obstacleType)
+#         rrt = RRTStar(vInit,vGoal,alpha=alpha,plotStore=pls,plottingInterval='notend',obstacleType=obstacleType)        
+#         rrt.extractPath()
+#         ax = rrt.returnPlot(ax,i+1)
+#         cPickle.dump(rrt,open(saveDir+'RRT_'+str(alpha)+'_'+obstacleType+'.p','wb'))
+#     patch1 = mpatches.Patch(color='#ff1493', label='Alpha = 0.25')    
+#     patch2 = mpatches.Patch(color='#0000ff', label='Alpha = 0.5')    
+#     patch3 = mpatches.Patch(color='#000000', label='Alpha = 1.0') 
+#     ax.legend(handles=[patch1,patch2,patch3])   
+#     # ax = plt.gca().add_artist(path_legend)
+#     fig.savefig(saveDir+'RRT_'+obstacleType+'.png')
+#     ax.clear()
+
+from contextlib import contextmanager
+import sys, os
+
+@contextmanager
+def suppress_stdout():
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:  
+            yield
+        finally:
+            sys.stdout = old_stdout
+
+RRTcompletionIterations = []
+RRTcompletionTimes = []
+for obstacleType in obstacleTypes: 
+    for i,alpha in enumerate(alphas):
+        pls = plotStore(vInit,vGoal,saveDir)
+        with suppress_stdout():
+            for i in range(10):
+                # rrt = RRT(vInit,vGoal,alpha=alpha,plotStore=pls,plottingInterval='notend',obstacleType=obstacleType)
+                rrt = RRTStar(vInit,vGoal,alpha=alpha,plotStore=pls,plottingInterval='notend',obstacleType=obstacleType)        
+                rrt.extractPath()
+                # print pls.RRTcompletionIterations
+                # sys.exit()
+        RRTcompletionIterations.append(np.mean(pls.RRTcompletionIterations))
+        RRTcompletionTimes.append(np.mean(pls.RRTcompletionTimes))
+        # cPickle.dump(pls,open(saveDir+'plotStore_'+str(alpha)+'_'+obstacleType+'.p','wb'))
+        print RRTcompletionIterations
+        print RRTcompletionTimes
+print RRTcompletionIterations
+print RRTcompletionTimes
+
+    
 
 # pi_rrt = PI_RRT(vInit,vGoal,alpha,saveDir,useRRTStar=False)
 # pirrtTimes = []
@@ -199,11 +271,11 @@ rrt.extractPath()
 #             pirrtTimes.append(time.time()-startTime)
 #             print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
 #             i += 1
-#             print pi_rrt.path[-1].getState()
-#         else:
-#             del pi_rrt.path[-1]
-#     else:
-#         del pi_rrt.path[-1]
+            # print pi_rrt.path[-1].getState()
+    #     else:
+    #         del pi_rrt.path[-1]
+    # else:
+    #     del pi_rrt.path[-1]
 
 # pi_rrt.RRT.plotAll()
 # rc = call(".//home/ankit/Documents/Thesis/createVideo.sh",shell=True)
