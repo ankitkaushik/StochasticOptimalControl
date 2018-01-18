@@ -19,7 +19,7 @@ pylab.rcParams.update(params)
 
 class RRT(object):
 
-    def __init__(self, vInit, vGoal, dt=0.1, velocity=2.3, wheelBase= 2.0, steeringRatio=1, alpha=0.25, r=1.0, plotStore=None,plottingInterval='end',obstacleType='single'):
+    def __init__(self, vInit, vGoal, dt=0.1, velocity=2.3, wheelBase= 2.0, steeringRatio=1, alpha=0.25, r=1.0, plotStore=None,plottingInterval='end',obstacleType='double'):
 
         self.vInit = vInit 
         self.vGoal = vGoal
@@ -51,9 +51,8 @@ class RRT(object):
 
     def plotAll(self):
         fig = plt.figure(figsize=(20,20))
-        plt.title('Sampling-based path planning using stochastic optimal control',fontsize=20)
+        plt.title('Sampling-based path planning using stochastic optimal control \n Alpha = '+str(self.alpha),fontsize=20)
         plt.axis('equal')  
-        plt.grid(1)   
         for obstacle in self.obstacles:    
             x = []
             y = []
@@ -189,7 +188,7 @@ class RRT(object):
                 # print 'vRand: ' + str(vRand.getState())
                 vNearest, vNearestIndex = self.getNN(vRand)
                 # print 'vNearest: ' + str(vNearest.getState())
-                newVertices = self.steer2(vNearest, vNearestIndex, vRand)
+                newVertices = self.steer(vNearest, vNearestIndex, vRand)
                 # print newVertices
                 obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
                 print obstacleFreeVertices
@@ -206,7 +205,7 @@ class RRT(object):
                     if self.plottingInterval != 'end':
                         if self.iterationCount % 1 == 0:
                             print 'plotting!'
-                            # self.plotAll()
+                            self.plotAll()
                     # print 'newly steered to vertex is ' + str(Vertex(*newVertices[-1]).getState())
 
                 # If we don't want to consider obstacles

@@ -53,9 +53,8 @@ class RRTStar(object):
 
     def plotAll(self):
         fig = plt.figure(figsize=(20,20))
-        plt.title('Sampling-based path planning using stochastic optimal control',fontsize=20)
+        plt.title('Sampling-based path planning using stochastic optimal control \n Alpha = '+str(self.alpha),fontsize=20)
         plt.axis('equal')  
-        plt.grid(1)   
         for obstacle in self.obstacles:    
             x = []
             y = []
@@ -191,7 +190,7 @@ class RRTStar(object):
                 # print 'vRand: ' + str(vRand.getState())
                 vNearest, vNearestIndex = self.getNN(vRand)
                 # print 'vNearest: ' + str(vNearest.getState())
-                newVertices = self.steer2(vNearest, vNearestIndex, vRand)
+                newVertices = self.steer(vNearest, vNearestIndex, vRand)
                 newVertices = [Vertex(*v) for v in newVertices]
                 # print max([v.controlInput for v in newVertices])
                 # print min([v.controlInput for v in newVertices])
@@ -217,9 +216,9 @@ class RRTStar(object):
                     if self.plotStore is not None:
                         self.plotStore.allRRTVertices.append(newVertices[-1])
 
-                    # if self.plotStore is not None:
-                    #     if self.plottingInterval != 'end':
-                            # self.plotAll()
+                    if self.plotStore is not None:
+                        if self.plottingInterval != 'end':
+                            self.plotAll()
 
                     for i,v in enumerate(self.vertices):
                         if i != newVertices[-1].parent:

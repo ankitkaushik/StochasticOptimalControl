@@ -30,38 +30,22 @@ def plotPath(path):
     plt.plot([v.x for v in path], [v.y for v in path], '-b')
 
 
-# In[3]:
-
-
 def scatterPath(path):
     scatter([v.x for v in path], [v.y for v in path], '-b')
-
-
-# In[4]:
-
 
 def plotStates(states):
     for s in states:
         plt.plot(s[:,0],s[:,1])
-
-
-# In[5]:
-
 
 def plotRRTVertices(RRT):
     scatter([v.x for v in RRT.vertices], [v.y for v in RRT.vertices],color='blue')
     scatter(RRT.vGoal.x, RRT.vGoal.y, c = 'g')
     plotObstacles(RRT)
 
-
-# In[6]:
-
-
 def saveRRTVerticesPlot(RRT,saveDir):
     fig = plt.figure(figsize=(20,20))  
     plt.axis('equal')  
     plt.grid(1)
-
 #     plt.ion()
     plt.title('Sampling-based path planning using stochastic optimal control',fontsize=20)    
     scatter(RRT.vInit.x, RRT.vInit.y, c = 'r')     
@@ -76,10 +60,6 @@ def saveRRTVerticesPlot(RRT,saveDir):
 #         disp.display(gcf())
 #         disp.clear_output(wait=True)
 
-
-# In[7]:
-
-
 def saveRRTPathPlot(RRT,saveDir):
     plotObstacles(RRT)
     scatter(RRT.vInit.x, RRT.vInit.y, c = 'r')     
@@ -88,18 +68,10 @@ def saveRRTPathPlot(RRT,saveDir):
         scatter(v.x, v.y ,color='blue')        
         savefig(saveDir+str(i)+'.png')
 
-
-# In[8]:
-
-
 def plotTrajectoryVertices(trajectory):
     scatter([v.x for v in trajectory], [v.y for v in trajectory],color='blue')
     scatter(trajectory[-1].x,trajectory[-1].y,color='red')
     scatter(trajectory[0].x,trajectory[0].y,color='green')
-
-
-# In[9]:
-
 
 def plotAllVertices(PI_RRT):
     for trajectory in PI_RRT.trajectories:
@@ -108,10 +80,6 @@ def plotAllVertices(PI_RRT):
         scatter(trajectory[0].x,trajectory[0].y)
     plt.plot([v.x for v in PI_RRT.RRT.path], [v.y for v in PI_RRT.RRT.path],color='r')
 #     plt.plot(states[:,0],states[:,1],color='g')
-
-
-# In[10]:
-
 
 def plotTree(RRT):    
     plt.ion()
@@ -125,10 +93,6 @@ def plotTree(RRT):
         plt.grid(True)  
         disp.display(gcf())
         disp.clear_output(wait=True)
-
-
-# In[11]:
-
 
 def plotObstacles(RRT):
     for obstacle in RRT.obstacles:    
@@ -185,7 +149,7 @@ obstacleTypes = ['single', 'double']
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRT_steer_controlled/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRTStar_steer_uncontrolled/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRTStar_steer_controlled/'
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/dummy/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/demo_PIRRT_RRT_uncontrolled_steering_double_obstacle/'
 
 print saveDir
 
@@ -195,11 +159,12 @@ except OSError as e:
     if e.errno != errno.EEXIST:
         raise
 
-# plotStore = plotStore(vInit,vGoal,saveDir)
+plotStore = plotStore(vInit,vGoal,saveDir)
 
-# rrt = RRT(vInit,vGoal,alpha=alphas[0],plotStore=plotStore,plottingInterval='notend',obstacleType=obstacleTypes[1])
+# rrt = RRT(vInit,vGoal,alpha=alphas[0],plotStore=plotStore,plottingInterval='notend',obstacleType=obstacleTypes[0])
 # rrt.extractPath()
-# rrt = RRTStar(vInit,vGoal,dt,velocity,wheelBase,steeringRatio,alpha,r,plotStore,plottingInterval='end')
+# rrt = RRTStar(vInit,vGoal,alpha=alphas[2],plotStore=plotStore,plottingInterval='notend',obstacleType=obstacleTypes[1])
+# rrt.extractPath()
 
 # for obstacleType in obstacleTypes:
 #     pls = plotStore(vInit,vGoal,saveDir)
@@ -222,60 +187,58 @@ except OSError as e:
 #     fig.savefig(saveDir+'RRT_'+obstacleType+'.png')
 #     ax.clear()
 
-from contextlib import contextmanager
-import sys, os
+# from contextlib import contextmanager
+# import sys, os
 
-@contextmanager
-def suppress_stdout():
-    with open(os.devnull, "w") as devnull:
-        old_stdout = sys.stdout
-        sys.stdout = devnull
-        try:  
-            yield
-        finally:
-            sys.stdout = old_stdout
+# @contextmanager
+# def suppress_stdout():
+#     with open(os.devnull, "w") as devnull:
+#         old_stdout = sys.stdout
+#         sys.stdout = devnull
+#         try:  
+#             yield
+#         finally:
+#             sys.stdout = old_stdout
 
-RRTcompletionIterations = []
-RRTcompletionTimes = []
-for obstacleType in obstacleTypes: 
-    for i,alpha in enumerate(alphas):
-        pls = plotStore(vInit,vGoal,saveDir)
-        with suppress_stdout():
-            for i in range(10):
+# RRTcompletionIterations = []
+# RRTcompletionTimes = []
+# for obstacleType in obstacleTypes: 
+#     for i,alpha in enumerate(alphas):
+#         pls = plotStore(vInit,vGoal,saveDir)
+#         with suppress_stdout():
+#             for i in range(10):
                 # rrt = RRT(vInit,vGoal,alpha=alpha,plotStore=pls,plottingInterval='notend',obstacleType=obstacleType)
-                rrt = RRTStar(vInit,vGoal,alpha=alpha,plotStore=pls,plottingInterval='notend',obstacleType=obstacleType)        
-                rrt.extractPath()
+                # rrt = RRTStar(vInit,vGoal,alpha=alpha,plotStore=pls,plottingInterval='notend',obstacleType=obstacleType)        
+                # rrt.extractPath()
                 # print pls.RRTcompletionIterations
                 # sys.exit()
-        RRTcompletionIterations.append(np.mean(pls.RRTcompletionIterations))
-        RRTcompletionTimes.append(np.mean(pls.RRTcompletionTimes))
+        # RRTcompletionIterations.append(np.mean(pls.RRTcompletionIterations))
+        # RRTcompletionTimes.append(np.mean(pls.RRTcompletionTimes))
         # cPickle.dump(pls,open(saveDir+'plotStore_'+str(alpha)+'_'+obstacleType+'.p','wb'))
-        print RRTcompletionIterations
-        print RRTcompletionTimes
-print RRTcompletionIterations
-print RRTcompletionTimes
+#         print RRTcompletionIterations
+#         print RRTcompletionTimes
+# print RRTcompletionIterations
+# print RRTcompletionTimes 
 
-    
+pi_rrt = PI_RRT(vInit,vGoal,alphas[0],saveDir,useRRTStar=False)
+pirrtTimes = []
+i = 0
+while pi_rrt.reachedGoal(pi_rrt.path[-1]) is False:
+    print pi_rrt.path[-1].getState()
+    startTime = time.time()    
+    print 'COUNT '+ str(i)
+    if pi_rrt.runRRT():
+        if pi_rrt.generateTrajectories2():
+            pi_rrt.executeControl2(*pi_rrt.computeVariation2())
+            print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
+            pirrtTimes.append(time.time()-startTime)
+            print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
+            i += 1
+            print pi_rrt.path[-1].getState()
+        else:
+            del pi_rrt.path[-1]
+    else:
+        del pi_rrt.path[-1]
 
-# pi_rrt = PI_RRT(vInit,vGoal,alpha,saveDir,useRRTStar=False)
-# pirrtTimes = []
-# i = 0
-# while pi_rrt.reachedGoal(pi_rrt.path[-1]) is False:
-#     print pi_rrt.path[-1].getState()
-#     startTime = time.time()    
-#     print 'COUNT '+ str(i)
-#     if pi_rrt.runRRT():
-#         if pi_rrt.generateTrajectories2():
-#             pi_rrt.executeControl2(*pi_rrt.computeVariation2())
-#             print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
-#             pirrtTimes.append(time.time()-startTime)
-#             print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
-#             i += 1
-            # print pi_rrt.path[-1].getState()
-    #     else:
-    #         del pi_rrt.path[-1]
-    # else:
-    #     del pi_rrt.path[-1]
-
-# pi_rrt.RRT.plotAll()
+pi_rrt.RRT.plotAll()
 # rc = call(".//home/ankit/Documents/Thesis/createVideo.sh",shell=True)
