@@ -20,7 +20,7 @@ import multiprocessing as mp
 
 class PI_RRT(object):
 
-    def __init__(self,vInit,vGoal,alpha,plotSaveDir,useRRTStar=True):
+    def __init__(self,vInit,vGoal,alpha,plotSaveDir,useRRTStar=True,controlledSteering=False):
 
         self.vInit = vInit
         self.vGoal = vGoal
@@ -56,6 +56,7 @@ class PI_RRT(object):
         self.plotStore = plotStore(self.vInit,self.vGoal,self.plotSaveDir)
 
         self.useRRTStar = useRRTStar
+        self.controlledSteering = controlledSteering
 
     def reachedGoal(self, v):
         if sqrt((v.x - self.vGoal.x)**2 + (v.y - self.vGoal.y)**2) <= self.goalDist:
@@ -69,7 +70,7 @@ class PI_RRT(object):
         if self.useRRTStar:
             self.RRT = RRTStar(self.path[-1],self.vGoal,self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r,self.plotStore)
         else:
-            self.RRT = RRT(self.path[-1],self.vGoal,self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r,self.plotStore)
+            self.RRT = RRT(self.path[-1],self.vGoal,self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r,self.controlledSteering,self.plotStore)
         print 'RRT initialized'
         if self.RRT.extractPath():
             print 'RRT path extracted'
@@ -86,7 +87,7 @@ class PI_RRT(object):
         if self.useRRTStar:
             RRT = RRTStar(self.path[-1],self.vGoal,self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r,self.plotStore)
         else:
-            RRT = RRT(self.path[-1],self.vGoal,self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r,self.plotStore)
+            RRT = RRT(self.path[-1],self.vGoal,self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r,self.controlledSteering,self.plotStore)
         RRT.extractPath()
         return RRT.pathReversed
 
@@ -321,6 +322,13 @@ class PI_RRT(object):
 #               rrtStates[i,2] = v.theta
 #               rrtStates[i,3] = self.RRT.dt*i
 #               rrtStates[i,4] = v.controlInput
+
+# states matrix variables
+# states[0,0] = vertices.x
+# states[0,1] = vertices.y
+# states[0,2] = vertices.theta
+# states[0,3] = self.RRT.dt*i
+# states[0,4] = vertices.controlInput
 
     def computeVariation2(self):
 

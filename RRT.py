@@ -19,7 +19,7 @@ pylab.rcParams.update(params)
 
 class RRT(object):
 
-    def __init__(self, vInit, vGoal, dt=0.1, velocity=2.3, wheelBase= 2.0, steeringRatio=1, alpha=0.25, r=1.0, plotStore=None,plottingInterval='end',obstacleType='double'):
+    def __init__(self, vInit, vGoal, dt=0.1, velocity=2.3, wheelBase= 2.0, steeringRatio=1, alpha=0.25, r=1.0, controlledSteering=False, plotStore=None,plottingInterval='end',obstacleType='double'):
 
         self.vInit = vInit 
         self.vGoal = vGoal
@@ -36,6 +36,8 @@ class RRT(object):
         self.steeringRatio = steeringRatio
         self.alpha = alpha
         self.r = r
+
+        self.controlledSteering = controlledSteering
 
         self.sampledPoints = []
         self.obstacleType = obstacleType
@@ -188,7 +190,10 @@ class RRT(object):
                 # print 'vRand: ' + str(vRand.getState())
                 vNearest, vNearestIndex = self.getNN(vRand)
                 # print 'vNearest: ' + str(vNearest.getState())
-                newVertices = self.steer(vNearest, vNearestIndex, vRand)
+                if self.controlledSteering is False:
+                    newVertices = self.steer(vNearest, vNearestIndex, vRand)
+                elif self.controlledSteering is True:
+                    newVertices = self.steer2(vNearest, vNearestIndex, vRand)
                 # print newVertices
                 obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
                 print obstacleFreeVertices
@@ -253,8 +258,9 @@ class RRT(object):
             # First new vertex
             dx = self.velocity*cos(vNearest.theta)
             dy = self.velocity*sin(vNearest.theta)              
-            randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
-            dtheta = (self.alpha/self.r)*randomOffset
+            # randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
+            randomOffset = np.random.normal()
+            dtheta = (self.alpha/self.r)*randomOffset/np.sqrt(self.dt)
             newVertices[n,0,0:2] = np.array([vNearest.x,vNearest.y]) + self.dt*np.array([dx, dy])
             newVertices[n,0,2] = vNearest.theta + dtheta
             newVertices[n,0,3] = vNearest.time+self.dt
@@ -349,9 +355,9 @@ class RRT(object):
         # First new vertex, compute steering angle, steer to new position, and store future steering angle as current orientation                   
         dtheta = self.computeSteeringAngle(vRand,vNearest)/self.r*self.dt
         # dtheta = self.computeSteeringAngle(vRand,vNearest)/self.r
-        randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
-        # randomOffset = np.random.normal(0.0, self.dt)
-        dtheta += (self.alpha/self.r)*randomOffset
+        # randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
+        randomOffset = np.random.normal()
+        dtheta += (self.alpha/self.r)*randomOffset/np.sqrt(self.dt)
         # dx = self.velocity*cos(dtheta)
         dx = self.velocity*cos(vNearest.theta)
         # dy = self.velocity*sin(dtheta)
