@@ -7,454 +7,375 @@ from Obstacle import Obstacle
 import time
 import matplotlib.pyplot as plt
 from utils import ccw
-
 import matplotlib.pylab as pylab
 params = {'legend.fontsize': 'xx-large',
-          'figure.figsize': (15, 5),
-         'axes.labelsize': 'xx-large',
-         'axes.titlesize':'xx-large',
-         'xtick.labelsize':'xx-large',
-         'ytick.labelsize':'xx-large'}
+ 'figure.figsize': (15, 5),
+ 'axes.labelsize': 'xx-large',
+ 'axes.titlesize': 'xx-large',
+ 'xtick.labelsize': 'xx-large',
+ 'ytick.labelsize': 'xx-large'}
 pylab.rcParams.update(params)
 
 class RRT(object):
 
-    def __init__(self, vInit, vGoal, dt=0.1, velocity=2.3, wheelBase= 2.0, steeringRatio=1, alpha=0.25, r=1.0, controlledSteering=False, plotStore=None,plottingInterval='end',obstacleType='double'):
-
-        self.vInit = vInit 
+    def __init__(self, vInit, vGoal, dt = 0.1, velocity = 2.3, wheelBase = 2.0, steeringRatio = 1, alpha = 0.25, r = 4.0, controlledSteering = False, plotStore = None, obstacleType = 'double', plottingInterval = 'end'):
+        self.vInit = vInit
         self.vGoal = vGoal
         self.goalDist = 1
-        # vertex: [x,y,theta,time,parent,control input]
         self.vertices = [vInit]
-        # self.edges = []
         self.searchSpace = [min(vInit.x, vInit.y), max(vGoal.x, vGoal.y)]
         self.searchSpace = [-9, 9]
-        # self.time = zInit[2]
         self.dt = dt
         self.velocity = velocity
         self.wheelBase = wheelBase
         self.steeringRatio = steeringRatio
         self.alpha = alpha
         self.r = r
-
         self.controlledSteering = controlledSteering
-
         self.sampledPoints = []
         self.obstacleType = obstacleType
         self.createObstacles(self.obstacleType)
-
         print 'rrt initialized with ' + str(self.vInit.getState())
-
         self.plotStore = plotStore
         self.plottingInterval = plottingInterval
 
-    def plotPath(self,path):
-        plt.plot([v.x for v in path], [v.y for v in path], '-b',linewidth=7.0)
+    def plotPath(self, path):
+        plt.plot([ v.x for v in path ], [ v.y for v in path ], '-b', linewidth=7.0)
 
     def plotAll(self):
-        fig = plt.figure(figsize=(20,20))
-        plt.title('Sampling-based path planning using stochastic optimal control \n Alpha = '+str(self.alpha),fontsize=20)
-        plt.axis('equal')  
-        for obstacle in self.obstacles:    
+        fig = plt.figure(figsize=(20, 20))
+        plt.title('Sampling-based path planning using stochastic optimal control \n Alpha = ' + str(self.alpha), fontsize=20)
+        plt.axis('equal')
+        for obstacle in self.obstacles:
             x = []
             y = []
-        #     print obstacle.center[0] - obstacle.size[0]/2
-            x.extend([obstacle.center[0] - obstacle.size[0]/2])
-            x.extend([obstacle.center[0] - obstacle.size[0]/2])
-            x.extend([obstacle.center[0] + obstacle.size[0]/2])
-            x.extend([obstacle.center[0] + obstacle.size[0]/2])
-            x.extend([obstacle.center[0] - obstacle.size[0]/2])
-            y.extend([obstacle.center[1] - obstacle.size[1]/2])
-            y.extend([obstacle.center[1] + obstacle.size[1]/2])
-            y.extend([obstacle.center[1] + obstacle.size[1]/2])
-            y.extend([obstacle.center[1] - obstacle.size[1]/2])
-            y.extend([obstacle.center[1] - obstacle.size[1]/2])
-            obstaclePlot = plt.plot(x,y,'r')
+            x.extend([obstacle.center[0] - obstacle.size[0] / 2])
+            x.extend([obstacle.center[0] - obstacle.size[0] / 2])
+            x.extend([obstacle.center[0] + obstacle.size[0] / 2])
+            x.extend([obstacle.center[0] + obstacle.size[0] / 2])
+            x.extend([obstacle.center[0] - obstacle.size[0] / 2])
+            y.extend([obstacle.center[1] - obstacle.size[1] / 2])
+            y.extend([obstacle.center[1] + obstacle.size[1] / 2])
+            y.extend([obstacle.center[1] + obstacle.size[1] / 2])
+            y.extend([obstacle.center[1] - obstacle.size[1] / 2])
+            y.extend([obstacle.center[1] - obstacle.size[1] / 2])
+            obstaclePlot = plt.plot(x, y, 'r')
+
         try:
-            rrtPathPlot = plt.plot([v.x for v in self.pathReversed], [v.y for v in self.pathReversed], '-b',linewidth=3.0)
-            # rrtPathPlot = plt.scatter([v.x for v in self.pathReversed], [v.y for v in self.pathReversed], c='blue')
+            rrtPathPlot = plt.plot([ v.x for v in self.pathReversed ], [ v.y for v in self.pathReversed ], '-b', linewidth=3.0)
         except:
             pass
-        pirrtPathPlot = plt.plot([v.x for v in self.plotStore.path], [v.y for v in self.plotStore.path], '-r',linewidth=7.0)
-        rrtVerticesPlot = plt.scatter([v.x for v in self.plotStore.allRRTVertices],[v.y for v in self.plotStore.allRRTVertices],c='cyan')
-        rrtSampledPointsPlot = plt.scatter([v.x for v in self.plotStore.sampledPoints],[v.y for v in self.plotStore.sampledPoints],c='orange')
-        initPlot = plt.scatter(self.plotStore.vInit.x, self.plotStore.vInit.y, c = 'r')     
-        goalPlot = plt.scatter(self.plotStore.vGoal.x, self.plotStore.vGoal.y, c = 'g') 
-        plt.legend([initPlot,goalPlot,pirrtPathPlot,rrtVerticesPlot,rrtSampledPointsPlot], ['Start', 'Goal','PIRRT Path','Vertices','Sampled Points'], loc=3)
+
+        pirrtPathPlot = plt.plot([ v.x for v in self.plotStore.path ], [ v.y for v in self.plotStore.path ], '-r', linewidth=7.0)
+        rrtVerticesPlot = plt.scatter([ v.x for v in self.plotStore.allRRTVertices ], [ v.y for v in self.plotStore.allRRTVertices ], c='cyan')
+        rrtSampledPointsPlot = plt.scatter([ v.x for v in self.plotStore.sampledPoints ], [ v.y for v in self.plotStore.sampledPoints ], c='orange')
+        initPlot = plt.scatter(self.plotStore.vInit.x, self.plotStore.vInit.y, c='r')
+        goalPlot = plt.scatter(self.plotStore.vGoal.x, self.plotStore.vGoal.y, c='g')
+        plt.legend([initPlot,
+         goalPlot,
+         pirrtPathPlot,
+         rrtVerticesPlot,
+         rrtSampledPointsPlot], ['Start',
+         'Goal',
+         'PIRRT Path',
+         'Vertices',
+         'Sampled Points'], loc=3)
         plt.grid()
-        plt.savefig(self.plotStore.plotSaveDir+'RRT_'+str(self.alpha)+'_'+self.obstacleType+'_'+str(self.plotStore.plotIndex)+'.png')
+        plt.savefig(self.plotStore.plotSaveDir + 'RRT_' + str(self.alpha) + '_' + self.obstacleType + '_' + str(self.plotStore.plotIndex) + '.png')
         self.plotStore.plotIndex += 1
 
-    def returnPlot(self,ax,n):
-          
-        for obstacle in self.obstacles:    
+    def returnPlot(self, ax, n):
+        for obstacle in self.obstacles:
             x = []
             y = []
-        #     print obstacle.center[0] - obstacle.size[0]/2
-            x.extend([obstacle.center[0] - obstacle.size[0]/2])
-            x.extend([obstacle.center[0] - obstacle.size[0]/2])
-            x.extend([obstacle.center[0] + obstacle.size[0]/2])
-            x.extend([obstacle.center[0] + obstacle.size[0]/2])
-            x.extend([obstacle.center[0] - obstacle.size[0]/2])
-            y.extend([obstacle.center[1] - obstacle.size[1]/2])
-            y.extend([obstacle.center[1] + obstacle.size[1]/2])
-            y.extend([obstacle.center[1] + obstacle.size[1]/2])
-            y.extend([obstacle.center[1] - obstacle.size[1]/2])
-            y.extend([obstacle.center[1] - obstacle.size[1]/2])
-            obstaclePlot = ax.plot(x,y,'r')
-        # try:
+            x.extend([obstacle.center[0] - obstacle.size[0] / 2])
+            x.extend([obstacle.center[0] - obstacle.size[0] / 2])
+            x.extend([obstacle.center[0] + obstacle.size[0] / 2])
+            x.extend([obstacle.center[0] + obstacle.size[0] / 2])
+            x.extend([obstacle.center[0] - obstacle.size[0] / 2])
+            y.extend([obstacle.center[1] - obstacle.size[1] / 2])
+            y.extend([obstacle.center[1] + obstacle.size[1] / 2])
+            y.extend([obstacle.center[1] + obstacle.size[1] / 2])
+            y.extend([obstacle.center[1] - obstacle.size[1] / 2])
+            y.extend([obstacle.center[1] - obstacle.size[1] / 2])
+            obstaclePlot = ax.plot(x, y, 'r')
+
         if n == 1:
-            rrtPathPlot1 = ax.plot([v.x for v in self.pathReversed], [v.y for v in self.pathReversed],linewidth=3.0,color='#ff1493')
+            rrtPathPlot1 = ax.plot([ v.x for v in self.pathReversed ], [ v.y for v in self.pathReversed ], linewidth=3.0, color='#ff1493')
         if n == 2:
-            rrtPathPlot2 = ax.plot([v.x for v in self.pathReversed], [v.y for v in self.pathReversed],linewidth=3.0,color='#0000ff')
+            rrtPathPlot2 = ax.plot([ v.x for v in self.pathReversed ], [ v.y for v in self.pathReversed ], linewidth=3.0, color='#0000ff')
         if n == 3:
-            rrtPathPlot3 = ax.plot([v.x for v in self.pathReversed], [v.y for v in self.pathReversed],linewidth=3.0,color='#000000')
-        # rrtPathPlot.set_label('RRT_alpha_'+str(self.alpha))
-        # rrtPathPlot = plt.scatter([v.x for v in self.pathReversed], [v.y for v in self.pathReversed], c='blue')
-        # except:
-        #     pass
-        pirrtPathPlot = ax.plot([v.x for v in self.plotStore.path], [v.y for v in self.plotStore.path], '-r',linewidth=7.0)
-        rrtVerticesPlot = ax.scatter([v.x for v in self.plotStore.allRRTVertices],[v.y for v in self.plotStore.allRRTVertices],c='cyan')
-        rrtSampledPointsPlot = ax.scatter([v.x for v in self.plotStore.sampledPoints],[v.y for v in self.plotStore.sampledPoints],c='orange')
-        initPlot = ax.scatter(self.plotStore.vInit.x, self.plotStore.vInit.y, c = 'r')     
-        goalPlot = ax.scatter(self.plotStore.vGoal.x, self.plotStore.vGoal.y, c = 'g')
+            rrtPathPlot3 = ax.plot([ v.x for v in self.pathReversed ], [ v.y for v in self.pathReversed ], linewidth=3.0, color='#000000')
+        pirrtPathPlot = ax.plot([ v.x for v in self.plotStore.path ], [ v.y for v in self.plotStore.path ], '-r', linewidth=7.0)
+        rrtVerticesPlot = ax.scatter([ v.x for v in self.plotStore.allRRTVertices ], [ v.y for v in self.plotStore.allRRTVertices ], c='cyan')
+        rrtSampledPointsPlot = ax.scatter([ v.x for v in self.plotStore.sampledPoints ], [ v.y for v in self.plotStore.sampledPoints ], c='orange')
+        initPlot = ax.scatter(self.plotStore.vInit.x, self.plotStore.vInit.y, c='r')
+        goalPlot = ax.scatter(self.plotStore.vGoal.x, self.plotStore.vGoal.y, c='g')
         if n == 1:
-            ax.legend([initPlot,goalPlot,pirrtPathPlot,rrtVerticesPlot,rrtSampledPointsPlot,rrtPathPlot1], ['Start', 'Goal','PIRRT Path','Vertices','Sampled Points','Some1 '],loc=3)
+            ax.legend([initPlot,
+             goalPlot,
+             pirrtPathPlot,
+             rrtVerticesPlot,
+             rrtSampledPointsPlot,
+             rrtPathPlot1], ['Start',
+             'Goal',
+             'PIRRT Path',
+             'Vertices',
+             'Sampled Points',
+             'Some1 '], loc=3)
         if n == 2:
-            ax.legend([initPlot,goalPlot,pirrtPathPlot,rrtVerticesPlot,rrtSampledPointsPlot,rrtPathPlot2], ['Start', 'Goal','PIRRT Path','Vertices','Sampled Points','Some2'],loc=3)
+            ax.legend([initPlot,
+             goalPlot,
+             pirrtPathPlot,
+             rrtVerticesPlot,
+             rrtSampledPointsPlot,
+             rrtPathPlot2], ['Start',
+             'Goal',
+             'PIRRT Path',
+             'Vertices',
+             'Sampled Points',
+             'Some2'], loc=3)
         if n == 3:
-            ax.legend([initPlot,goalPlot,pirrtPathPlot,rrtVerticesPlot,rrtSampledPointsPlot,rrtPathPlot3], ['Start', 'Goal','PIRRT Path','Vertices','Sampled Points','Some3'],loc=3)
-        
+            ax.legend([initPlot,
+             goalPlot,
+             pirrtPathPlot,
+             rrtVerticesPlot,
+             rrtSampledPointsPlot,
+             rrtPathPlot3], ['Start',
+             'Goal',
+             'PIRRT Path',
+             'Vertices',
+             'Sampled Points',
+             'Some3'], loc=3)
         return ax
 
-    def createObstacles(self,obstacleType='single'):
+    def createObstacles(self, obstacleType = 'single'):
         self.obstacles = []
-        # Single slit
-        if obstacleType == 'single':            
-            self.obstacles.append(Obstacle(center=[-2,1.25], size=[0.5,2]))
-            self.obstacles.append(Obstacle(center=[-2,-1.25], size=[0.5,2]))
-            # self.obstacles.append([[-2.25,2.25],[-2.25,0.25],[-1.75,2.25],[-1.75,0.25]])
-            # self.obstacles.append([[-2.25,-0.25],[-2.25,-2.25],[-1.75,-0.25],[-1.75,-2.25]])
-        # Double slit
+        if obstacleType == 'single':
+            self.obstacles.append(Obstacle(center=[-2, 1.25], size=[0.5, 2]))
+            self.obstacles.append(Obstacle(center=[-2, -1.25], size=[0.5, 2]))
         elif obstacleType == 'double':
-            self.obstacles.append(Obstacle(center=[-2,0.], size=[3.5,1.2]))
-            self.obstacles.append(Obstacle(center=[-2,1.75], size=[3.5,1.5]))
-            self.obstacles.append(Obstacle(center=[-2,-1.75], size=[3.5,1.5]))
-    
+            self.obstacles.append(Obstacle(center=[-2, 0.0], size=[3.5, 1.2]))
+            self.obstacles.append(Obstacle(center=[-2, 1.75], size=[3.5, 1.5]))
+            self.obstacles.append(Obstacle(center=[-2, -1.75], size=[3.5, 1.5]))
+
+    def assignControlSpline(self, controlSpline):
+        self.controlSpline = controlSpline
+
     def reachedGoal(self, v):
-        print sqrt((v.x - self.vGoal.x)**2 + (v.y - self.vGoal.y)**2)
-        if sqrt((v.x - self.vGoal.x)**2 + (v.y - self.vGoal.y)**2) <= self.goalDist:
+        print sqrt((v.x - self.vGoal.x) ** 2 + (v.y - self.vGoal.y) ** 2)
+        if sqrt((v.x - self.vGoal.x) ** 2 + (v.y - self.vGoal.y) ** 2) <= self.goalDist:
             return True
         else:
             return False
-            
+
     def getDistance(self, v1, v2):
-        return sqrt((v1.x - v2.x)**2 + (v1.y - v2.y)**2)
+        return sqrt((v1.x - v2.x) ** 2 + (v1.y - v2.y) ** 2)
 
     def getNN(self, vRand, path = False):
-
         if path == False:
             vNearest = self.vertices[0]
             vNearestIndex = 0
-            # print 'nearest distance: ' + str(self.getDistance(vNearest,vRand))
-            for i,v in enumerate(self.vertices):
-                # print 'vertex: ' + str(v.getState())
-                # print 'vertex distance: ' + str(self.getDistance(v,vRand))
-                if self.getDistance(v,vRand) < self.getDistance(vNearest,vRand):
+            for i, v in enumerate(self.vertices):
+                if self.getDistance(v, vRand) < self.getDistance(vNearest, vRand):
                     vNearest = v
                     vNearestIndex = i
-            # print 'nearest distance: ' + str(self.getDistance(vNearest,vRand))
-            return vNearest, vNearestIndex
-            
+
+            return (vNearest, vNearestIndex)
         if path == True:
             vNearest = self.path[0]
             vNearestIndex = 0
-            for i,v in enumerate(self.path):
-                if self.getDistance(v,vRand) < self.getDistance(vNearest, vRand):
+            for i, v in enumerate(self.path):
+                if self.getDistance(v, vRand) < self.getDistance(vNearest, vRand):
                     vNearest = v
                     vNearestIndex = i
-            return vNearest, vNearestIndex
 
-    def extend(self,stopCount=100):
+            return (vNearest, vNearestIndex)
 
+    def extend(self, stopCount = 1000):
         obstacleFreeVertices = False
         count = 0
         successFlag = True
-
         while obstacleFreeVertices == False:
-            if count<stopCount:        
+            if count < stopCount:
+                newVertices = None
                 vRand = self.sample()
                 self.sampledPoints.append(vRand)
                 if self.plotStore is not None:
                     self.plotStore.sampledPoints.append(vRand)
-                # print 'vRand: ' + str(vRand.getState())
                 vNearest, vNearestIndex = self.getNN(vRand)
-                # print 'vNearest: ' + str(vNearest.getState())
                 if self.controlledSteering is False:
-                    newVertices = self.steer(vNearest, vNearestIndex, vRand)
+                    print 'using uncontrolled steering'
+                    newVertices = self.steerUncontrolled(vNearest, vNearestIndex, vRand)
                 elif self.controlledSteering is True:
-                    newVertices = self.steer2(vNearest, vNearestIndex, vRand)
-                # print newVertices
-                obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
-                print obstacleFreeVertices
-                # obstacleFreeVertices = True
-                if obstacleFreeVertices == True: 
-                    for i in range(newVertices.shape[0]):
-                        # print 'these are supposed to be obstacle free vertices'
-                        # print Vertex(*newVertices[i]).getState()
-                        self.vertices.append(Vertex(*newVertices[i]))
-                        if self.plotStore is not None:
-                            self.plotStore.allRRTVertices.append(Vertex(*newVertices[i]))
-                        # print [v.getState() for v in self.vertices]
-                if self.plotStore is not None:
-                    if self.plottingInterval != 'end':
-                        if self.iterationCount % 1 == 0:
-                            print 'plotting!'
-                            self.plotAll()
-                    # print 'newly steered to vertex is ' + str(Vertex(*newVertices[-1]).getState())
+                    print 'using controlled steering'
+                    newVertices = self.steerControlled(vNearest, vNearestIndex, vRand)
+                if newVertices is not None:
+                    obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
+                    print obstacleFreeVertices
+                    if obstacleFreeVertices == True:
+                        for i in range(newVertices.shape[0]):
+                            self.vertices.append(Vertex(*newVertices[i]))
+                            if self.plotStore is not None:
+                                self.plotStore.allRRTVertices.append(Vertex(*newVertices[i]))
 
-                # If we don't want to consider obstacles
-                # for i in range(1,newVertices.shape[0]):
-                #     self.vertices.append(Vertex(*newVertices[i]))
-                count += 1
+                    if self.plotStore is not None:
+                        if self.plottingInterval != 'end':
+                            if self.iterationCount % 1 == 0:
+                                print 'plotting!'
+                                self.plotAll()
+                    count += 1
             else:
                 print stopCount
                 successFlag = False
-                break                
+                break
 
         return successFlag
 
-
     def sample(self):
-
         vRand = deepcopy(self.vGoal)
         while (vRand.x == self.vGoal.x) is True and (vRand.y == self.vGoal.y) is True:
-            # print 'searchSpace: ' + str(self.searchSpace)
             vRand.x = np.random.uniform(self.searchSpace[0], self.searchSpace[1])
             vRand.y = np.random.uniform(self.searchSpace[0], self.searchSpace[1])
             if self.onObstacle(vRand) == True:
                 vRand.x = self.vGoal.x
                 vRand.y = self.vGoal.y
-        # print 'newly sampled point is ' + str(vRand.getState())
+
         return vRand
 
-    def steer(self, vNearest, vNearestIndex, vRand):
-        
-        # numSteps = np.random.randint(1,10)
+    def generateNoise(self):
+        dW_1 = self.alpha / self.r * np.random.normal(0.0, np.sqrt(self.dt))
+        dW_2 = self.alpha / self.r * np.random.normal() / np.sqrt(self.dt)
+        return dW_1
+
+    def steerUncontrolled(self, vNearest, vNearestIndex, vRand):
         numSteps = 10
         numTries = 1
-
-        # endState = np.zeros(3)
         minDist = float('inf')
         startTime = time.time()
-        newVertices = np.zeros((numTries,numSteps+1,6))
-        # randomOffsets = np.zeros((numTries,numSteps))
+        newVertices = np.zeros((numTries, numSteps + 1, 6))
         tryIndex = 0
         for n in range(numTries):
-
-            # If we want to set the first new vertex to the near vertex
-            # newVertices[n,0,:] = np.array([vNearest.getState()])
-
-            # First new vertex
-            dx = self.velocity*cos(vNearest.theta)
-            dy = self.velocity*sin(vNearest.theta)              
-            # randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
-            randomOffset = np.random.normal()
-            dtheta = (self.alpha/self.r)*randomOffset/np.sqrt(self.dt)
-            newVertices[n,0,0:2] = np.array([vNearest.x,vNearest.y]) + self.dt*np.array([dx, dy])
-            newVertices[n,0,2] = vNearest.theta + dtheta
-            newVertices[n,0,3] = vNearest.time+self.dt
-            newVertices[n,0,4] = dtheta
-            newVertices[n,0,5] = vNearestIndex
+            dx = self.velocity * cos(vNearest.theta)
+            dy = self.velocity * sin(vNearest.theta)
+            if hasattr(self, 'controlSpline'):
+                dtheta = self.controlSpline(0.0) / self.r
+                dtheta += self.generateNoise()
+            else:
+                dtheta = self.generateNoise()
+            newVertices[n, 0, 0:2] = np.array([vNearest.x, vNearest.y]) + self.dt * np.array([dx, dy])
+            newVertices[n, 0, 2] = vNearest.theta + dtheta
+            newVertices[n, 0, 3] = vNearest.time + self.dt
+            newVertices[n, 0, 4] = dtheta * self.r
+            newVertices[n, 0, 5] = vNearestIndex
             newVertexIndex = len(self.vertices)
+            for i in range(1, numSteps + 1):
+                dx = self.velocity * cos(newVertices[n, i - 1, 2])
+                dy = self.velocity * sin(newVertices[n, i - 1, 2])
+                if hasattr(self, 'controlSpline'):
+                    dtheta = self.controlSpline(self.dt * i) / self.r
+                    dtheta += self.generateNoise()
+                else:
+                    dtheta = self.generateNoise()
+                print 'dtheta: ' + str(dtheta)
+                print 'newVertices[n,i-1,2] + dtheta: ' + str(newVertices[n, i - 1, 2] + dtheta)
+                newVertices[n, i, 0:2] = newVertices[n, i - 1, 0:2] + self.dt * np.array([dx, dy])
+                newVertices[n, i, 2] = newVertices[n, i - 1, 2] + dtheta
+                newVertices[n, i, 3] = vNearest.time + i * self.dt
+                newVertices[n, i, 4] = dtheta * self.r
+                newVertices[n, i, 5] = newVertexIndex + i - 1
 
-            for i in range(1,numSteps+1):                
-                # print newVertices[n,i-1,2]
-                dx = self.velocity*cos(newVertices[n,i-1,2])
-                # print 'dx: '+str(dx)
-                dy = self.velocity*sin(newVertices[n,i-1,2])
-                # print 'dy: '+str(dy)                
-                randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
-                # print 'randomOffset: ' + str(randomOffset)                           
-
-                # Checking if future vertices are in collision path, deprecated though
-
-                # futureVertex = np.array([-2,1.25,0,0,0,0])
-                # print futureVertex
-                # print self.obstacleFree(Vertex(*futureVertex))            
-                # while self.obstacleFree(Vertex(*futureVertex)) == False:
-                #   print 'futureVertex: ' + str(Vertex(*futureVertex).getState())
-                #   randomOffset = np.random.randn()
-                #   print 'randomOffset: ' + str(randomOffset)
-                #   dtheta = (1/self.r)*self.alpha*sqrt(self.dt)*randomOffset
-                #   print 'dtheta: ' + str(dtheta) 
-                #   future_dx = self.velocity*cos(newVertices[n,i-1,2] + dtheta)
-                #   future_dy = self.velocity*sin(newVertices[n,i-1,2] + dtheta)
-                #   futureVertex[0:2] = newVertices[n,i-1,0:2] + self.dt*np.array([dx, dy]) + self.dt*np.array([future_dx, future_dy])
-
-                dtheta = (self.alpha/self.r)*randomOffset
-                # print 'dtheta: '+str(dtheta)
-                # print 'states-1: ' + str(states[n,i-1,:])
-                # print self.dt*np.array([dx, dy, dtheta])
-                # print 'states[i,0]: ' + str(states[i,0])
-                # print 'states[-1,0]: ' + str(states[-1,0])
-                # print 'self.dt*dx: ' + str(self.dt*dx)
-                # print newVertices[n,i,0:2]
-                # print newVertices[n,i-1,0:2]
-                newVertices[n,i,0:2] = newVertices[n,i-1,0:2] + self.dt*np.array([dx, dy])
-                newVertices[n,i,2] = newVertices[n,i-1,2] + dtheta
-                newVertices[n,i,3] = vNearest.time+i*self.dt
-                newVertices[n,i,4] = dtheta
-                newVertices[n,i,5] = newVertexIndex+i-1
-
-                # if self.obstacleFree(Vertex(*newVertices[n,i,:])) == False:
-                #   print newVertices[n,i-1,:]
-                #   print newVertices[n,i,:]
-                #   sys.exit()
-
-                # print 'states[i,0]: ' + str(states[i,0])
-                # states[i,1] = states[i-1,1] + self.dt*dy
-                # states[i,2] = states[i-1,2] + self.dt*dtheta
-                # print 'states: ' + str(states[n,i,:])
-                # randomOffsets[n,i] = randomOffset
-                # print newVertices
-
-            dist = sqrt((newVertices[n,-1,0] - vRand.x)**2 + (newVertices[n,-1,1] - vRand.y)**2)
+            dist = sqrt((newVertices[n, -1, 0] - vRand.x) ** 2 + (newVertices[n, -1, 1] - vRand.y) ** 2)
             if dist < minDist:
                 tryIndex = n
-                # minDist = dist
-                # endState = states[n,-1,:]
-            # print 'states for statesAll: ' +str(states)
-            # statesAll[i,:,:] = deepcopy(states)
 
-        # print 'steering completed in ' + str(time.time()-startTime) + ' s'
-        # return Vertex(endState[0],endState[1],zNearest.parent,endState[2])
-        # return states, Vertex(endState[0], endState[1], zNearestIndex, endState[2]), randomOffsets
-        return newVertices[tryIndex,:,:]
+        return newVertices[tryIndex, :, :]
 
-    def computeSteeringAngle(self,trackVertex,currentVertex):
-        xDistance = trackVertex.x-currentVertex.x
-        yDistance = trackVertex.y-currentVertex.y
-        L = np.sqrt(xDistance**2 + yDistance**2)
-        alpha1 = atan2(yDistance,xDistance)
-
-        # if alpha1<0:
-        #     alpha2 = alpha1+(2*pi) - currentVertex.theta
-        # else:
-        #     alpha2 = alpha1 - currentVertex.theta
-
-        # omega = 2*self.velocity*sin(alpha2)/L
+    def computeSteeringAngle(self, trackVertex, currentVertex):
+        xDistance = trackVertex.x - currentVertex.x
+        yDistance = trackVertex.y - currentVertex.y
+        L = np.sqrt(xDistance ** 2 + yDistance ** 2)
+        alpha1 = atan2(yDistance, xDistance)
         return alpha1
 
-    def steer2(self, vNearest, vNearestIndex, vRand):
-
+    def steerControlled(self, vNearest, vNearestIndex, vRand):
         numSteps = 10
         startTime = time.time()
-        newVertices = np.zeros((numSteps+1,10))
-
-        # First new vertex, compute steering angle, steer to new position, and store future steering angle as current orientation                   
-        dtheta = self.computeSteeringAngle(vRand,vNearest)/self.r*self.dt
-        # dtheta = self.computeSteeringAngle(vRand,vNearest)/self.r
-        # randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
-        randomOffset = np.random.normal()
-        dtheta += (self.alpha/self.r)*randomOffset/np.sqrt(self.dt)
-        # dx = self.velocity*cos(dtheta)
-        dx = self.velocity*cos(vNearest.theta)
-        # dy = self.velocity*sin(dtheta)
-        dy = self.velocity*sin(vNearest.theta)      
-        newVertices[0,0:2] = np.array([vNearest.x,vNearest.y]) + self.dt*np.array([dx, dy])
-        # dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[0]))/self.r*self.dt
-        # dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[0]))/self.r
-        # randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
-        # dtheta += (self.alpha/self.r)*randomOffset
-        newVertices[0,2] = vNearest.theta+dtheta
-        newVertices[0,3] = vNearest.time+self.dt
-        newVertices[0,4] = dtheta
-        newVertices[0,5] = vNearestIndex
-        newVertices[0,7] = randomOffset
-        newVertices[0,8] = vRand.x
-        newVertices[0,9] = vRand.y
+        newVertices = np.zeros((numSteps + 1, 10))
+        if hasattr(self, 'controlSpline'):
+            dtheta = self.controlSpline(0.0) / self.r
+        else:
+            dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
+        dtheta += self.generateNoise()
+        dx = self.velocity * cos(vNearest.theta)
+        dy = self.velocity * sin(vNearest.theta)
+        newVertices[0, 0:2] = np.array([vNearest.x, vNearest.y]) + self.dt * np.array([dx, dy])
+        newVertices[(0, 2)] = vNearest.theta + dtheta
+        newVertices[(0, 3)] = vNearest.time + self.dt
+        newVertices[(0, 4)] = dtheta * self.r
+        newVertices[(0, 5)] = vNearestIndex
         newVertexIndex = len(self.vertices)
         currentVertex = Vertex(*newVertices[0])
-
-        for i in range(1,numSteps+1):  
-            # print i              
-            dx = self.velocity*cos(newVertices[i-1,2])
-            dy = self.velocity*sin(newVertices[i-1,2])               
-            newVertices[i,0:2] = newVertices[i-1,0:2] + self.dt*np.array([dx, dy])
-            dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[i-1]))/self.r*self.dt
-            # dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[i-1]))/self.r
-            randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
-            # randomOffset = np.random.normal(0.0, self.dt)
-            dtheta += (self.alpha/self.r)*randomOffset
-            newVertices[i,2] = newVertices[i-1,2]+dtheta
-            newVertices[i,3] = newVertices[i-1,3]+(i*self.dt)
-            newVertices[i,4] = dtheta
-            newVertices[i,5] = newVertexIndex+i-1
-            newVertices[i,7] = randomOffset
-            newVertices[i,8] = vRand.x
-            newVertices[i,9] = vRand.y
+        for i in range(1, numSteps + 1):
+            dx = self.velocity * cos(newVertices[i - 1, 2])
+            dy = self.velocity * sin(newVertices[i - 1, 2])
+            newVertices[i, 0:2] = newVertices[i - 1, 0:2] + self.dt * np.array([dx, dy])
+            if hasattr(self, 'controlSpline'):
+                dtheta = self.controlSpline(self.dt * i) / self.r
+            else:
+                dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
+            dtheta += self.generateNoise()
+            newVertices[i, 2] = newVertices[i - 1, 2] + dtheta
+            newVertices[i, 3] = newVertices[i - 1, 3] + i * self.dt
+            newVertices[i, 4] = dtheta * self.r
+            newVertices[i, 5] = newVertexIndex + i - 1
             currentVertex = Vertex(*newVertices[i])
 
-        # print 'steering completed in ' + str(time.time()-startTime) + ' s'
         return newVertices
 
     def generateTrajectory(self):
-
         startTime = time.time()
-        newVertices = np.zeros((numSteps+1,10))
-
+        newVertices = np.zeros((numSteps + 1, 10))
         numSteps = 10
-        dt = self.pathReversed[-1].time/numSteps
-        controlSpline = interp1d([v.time for v in self.pathReversed], [v.controlInput for v in self.pathReversed],fill_value="extrapolate")        
-
-        # First new vertex, compute steering angle, steer to new position, and store future steering angle as current orientation                   
-        # dtheta = self.computeSteeringAngle(vRand,vNearest)/self.r*self.dt
-        dtheta = self.computeSteeringAngle(vRand,vNearest)/self.r
+        dt = self.pathReversed[-1].time / numSteps
+        controlSpline = interp1d([ v.time for v in self.pathReversed ], [ v.controlInput for v in self.pathReversed ], fill_value='extrapolate')
+        dtheta = self.computeSteeringAngle(vRand, vNearest) / self.r
         randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
-        # randomOffset = np.random.normal(0.0, self.dt)
-        dtheta += (self.alpha/self.r)*randomOffset
-        dx = self.velocity*cos(dtheta)
-        dy = self.velocity*sin(dtheta)   
-        newVertices[0,0:2] = np.array([vNearest.x,vNearest.y]) + self.dt*np.array([dx, dy])
-        # dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[0]))/self.r*self.dt
-        dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[0]))/self.r
+        dtheta += self.alpha / self.r * randomOffset
+        dx = self.velocity * cos(dtheta)
+        dy = self.velocity * sin(dtheta)
+        newVertices[0, 0:2] = np.array([vNearest.x, vNearest.y]) + self.dt * np.array([dx, dy])
+        dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[0])) / self.r
         randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
-        dtheta += (self.alpha/self.r)*randomOffset
-        newVertices[0,2] = dtheta
-        newVertices[0,3] = vNearest.time+self.dt
-        newVertices[0,4] = dtheta
-        newVertices[0,5] = vNearestIndex
-        newVertices[0,7] = randomOffset
-        newVertices[0,8] = vRand.x
-        newVertices[0,9] = vRand.y
+        dtheta += self.alpha / self.r * randomOffset
+        newVertices[(0, 2)] = dtheta
+        newVertices[(0, 3)] = vNearest.time + self.dt
+        newVertices[(0, 4)] = dtheta
+        newVertices[(0, 5)] = vNearestIndex
+        newVertices[(0, 7)] = randomOffset
+        newVertices[(0, 8)] = vRand.x
+        newVertices[(0, 9)] = vRand.y
         newVertexIndex = len(self.vertices)
         currentVertex = Vertex(*newVertices[0])
-
-        for i in range(numSteps):  
-            # print i              
-            dx = self.velocity*cos(newVertices[i-1,2])
-            dy = self.velocity*sin(newVertices[i-1,2])               
-            newVertices[i,0:2] = newVertices[i-1,0:2] + self.dt*np.array([dx, dy])
-            # dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[i]))/self.r*self.dt
-            dtheta = self.computeSteeringAngle(vRand,Vertex(*newVertices[i]))/self.r
+        for i in range(numSteps):
+            dx = self.velocity * cos(newVertices[i - 1, 2])
+            dy = self.velocity * sin(newVertices[i - 1, 2])
+            newVertices[i, 0:2] = newVertices[i - 1, 0:2] + self.dt * np.array([dx, dy])
+            dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i])) / self.r
             randomOffset = np.random.normal(0.0, np.sqrt(self.dt))
-            # randomOffset = np.random.normal(0.0, self.dt)
-            dtheta += (self.alpha/self.r)*randomOffset
-            newVertices[i,2] = dtheta
-            newVertices[i,3] = newVertices[i-1,3]+(i*self.dt)
-            newVertices[i,4] = dtheta
-            newVertices[i,5] = newVertexIndex+i-1
-            newVertices[i,7] = randomOffset
-            newVertices[i,8] = vRand.x
-            newVertices[i,9] = vRand.y
+            dtheta += self.alpha / self.r * randomOffset
+            newVertices[i, 2] = dtheta
+            newVertices[i, 3] = newVertices[i - 1, 3] + i * self.dt
+            newVertices[i, 4] = dtheta
+            newVertices[i, 5] = newVertexIndex + i - 1
+            newVertices[i, 7] = randomOffset
+            newVertices[i, 8] = vRand.x
+            newVertices[i, 9] = vRand.y
             currentVertex = Vertex(*newVertices[i])
 
-        # print 'steering completed in ' + str(time.time()-startTime) + ' s'
         return newVertices
 
-
-    def extractPath(self, stopCount=np.inf, stopAtGoal=True):
+    def extractPath(self, stopCount = np.inf, stopAtGoal = True):
         successFlag = True
         self.path = []
         self.iterationCount = 0
@@ -465,24 +386,18 @@ class RRT(object):
                 if self.iterationCount > stopCount:
                     break
                 if self.extend():
-                    # print 'vertices length:' + str(len(self.vertices))
                     lastVertex = self.vertices[-1]
                     print lastVertex.getState()
-                    # print 'lastVertex updated'
                     print 'RRT iteration count is: ' + str(self.iterationCount)
-                    self.iterationCount += 1         
+                    self.iterationCount += 1
                 else:
                     successFlag = False
-                    return successFlag  
+                    return successFlag
 
             self.plotStore.RRTcompletionIterations.append(self.iterationCount)
-            self.plotStore.RRTcompletionTimes.append(time.time()-startTime)
-
+            self.plotStore.RRTcompletionTimes.append(time.time() - startTime)
             print 'path found in ' + str(self.iterationCount) + ' iterations'
-            print 'path found in ' + str(time.time()-startTime) + ' s'
-            # for i in range(0,10):
-            #   j = int(self.vertices[i].parent)
-            #   print self.vertices[j].parent
+            print 'path found in ' + str(time.time() - startTime) + ' s'
             print 'last added vertex is ' + str(lastVertex.getState())
             self.path.append(lastVertex)
             j = -1
@@ -496,187 +411,130 @@ class RRT(object):
 
             if self.plotStore is not None:
                 self.plotAll()
-
             return successFlag
-
-            # self.controls = []
-            # for i,v in enumerate(self.pathReversed[:-1]):
-            #   currentPosition = np.array([v.x,v.y])
-            #   trackPoint = np.array([self.pathReversed[i+1].x,self.pathReversed[i+1].y])
-            #   delta = self.computeControlInput(currentPosition, trackPoint, velocity=self.velocity, wheelBase=self.wheelBase, steeringRatio=self.steeringRatio)
-            #   self.controls.append(delta)
-            # self.controls.append(0)
-
         else:
             for i in range(stopCount):
                 self.extend()
                 print 'RRT iteration count is: ' + str(self.iterationCount)
-                self.iterationCount += 1    
+                self.iterationCount += 1
+
             return successFlag
 
     def onObstacle(self, v):
-
         onObstacle = False
         boundaryOffset = 0.0
         for obstacle in self.obstacles:
-            x,y = v.getState()[0:2]
-            if x>=(obstacle.center[0]-obstacle.size[0]/2)-boundaryOffset and  x<=(obstacle.center[0]+obstacle.size[0]/2)+boundaryOffset:
-                if y>=(obstacle.center[1]-obstacle.size[1]/2)-boundaryOffset and  y<=(obstacle.center[1]+obstacle.size[1]/2)+boundaryOffset:
+            x, y = v.getState()[0:2]
+            if x >= obstacle.center[0] - obstacle.size[0] / 2 - boundaryOffset and x <= obstacle.center[0] + obstacle.size[0] / 2 + boundaryOffset:
+                if y >= obstacle.center[1] - obstacle.size[1] / 2 - boundaryOffset and y <= obstacle.center[1] + obstacle.size[1] / 2 + boundaryOffset:
                     onObstacle = True
 
-        return onObstacle 
-
+        return onObstacle
 
     def obstacleFree(self, v1, v2):
-
         A = [v1.x, v1.y]
         B = [v2.x, v2.y]
         for obstacle in self.obstacles:
-            x1,x2,y1,y2 = obstacle.getCorners()
-            C1 = [x1,y1]
-            # print C1
-            D1 = [x1,y2]
-            # print D1
-            C2 = [x1,y1]
-            # print C2
-            D2 = [x2,y1]
-            # print D2
-            C3 = [x2,y1]
-            # print C3
-            D3 = [x2,y2]
-            # print D3
-            C4 = [x1,y2]
-            # print C4
-            D4 = [x2,y2]
-            # print D4
-            intersect1 = ccw(A,C1,D1) != ccw(B,C1,D1) and ccw(A,B,C1) != ccw(A,B,D1)
-            # print intersect1 
-            intersect2 = ccw(A,C2,D2) != ccw(B,C2,D2) and ccw(A,B,C2) != ccw(A,B,D2)
-            # print intersect2 
-            intersect3 = ccw(A,C3,D3) != ccw(B,C3,D3) and ccw(A,B,C3) != ccw(A,B,D3)
-            # print intersect3 
-            intersect4 = ccw(A,C4,D4) != ccw(B,C4,D4) and ccw(A,B,C4) != ccw(A,B,D4)
-            # print intersect4 
-
-            if intersect1==True or intersect2==True or intersect3==True or intersect4==True: 
+            x1, x2, y1, y2 = obstacle.getCorners()
+            C1 = [x1, y1]
+            D1 = [x1, y2]
+            C2 = [x1, y1]
+            D2 = [x2, y1]
+            C3 = [x2, y1]
+            D3 = [x2, y2]
+            C4 = [x1, y2]
+            D4 = [x2, y2]
+            intersect1 = ccw(A, C1, D1) != ccw(B, C1, D1) and ccw(A, B, C1) != ccw(A, B, D1)
+            intersect2 = ccw(A, C2, D2) != ccw(B, C2, D2) and ccw(A, B, C2) != ccw(A, B, D2)
+            intersect3 = ccw(A, C3, D3) != ccw(B, C3, D3) and ccw(A, B, C3) != ccw(A, B, D3)
+            intersect4 = ccw(A, C4, D4) != ccw(B, C4, D4) and ccw(A, B, C4) != ccw(A, B, D4)
+            if intersect1 == True or intersect2 == True or intersect3 == True or intersect4 == True:
                 return False
 
         return True
 
     def obstacleFreeVertices(self, newVertices):
-
         obstacleFreeVertices = True
-        # samplingPoints = 10
-    
-        # for i in range(2,len(newVertices)):
-        #     xPoints = np.linspace(newVertices[i-1,0],newVertices[i,0],samplingPoints)
-        #     yPoints = np.linspace(newVertices[i-1,1],newVertices[i,1],samplingPoints)
-        #     for j in range(samplingPoints):
-        #         if self.obstacleFree(Vertex(xPoints[j],yPoints[j])) == False:
-        #             obstacleFreeVertices = False
-
         for v in newVertices:
             if self.onObstacle(Vertex(*v)) == True:
                 obstacleFreeVertices = False
-        
-        return obstacleFreeVertices
-    
-    def generateRRTControls(self):      
 
+        return obstacleFreeVertices
+
+    def generateRRTControls(self):
         xCurrent = self.zInit.x
         yCurrent = self.zInit.y
         thetaCurrent = self.zInit.theta
         states = []
-        states.append([deepcopy(xCurrent),deepcopy(yCurrent),deepcopy(thetaCurrent)])
+        states.append([deepcopy(xCurrent), deepcopy(yCurrent), deepcopy(thetaCurrent)])
         controls = []
-
         for trackPoint in reversed(self.path[:-1]):
-
             print 'xCurrent: ' + str(xCurrent)
             print 'yCurrent: ' + str(yCurrent)
-
             print trackPoint.show()
-            print sqrt((xCurrent - trackPoint.x)**2 + (yCurrent - trackPoint.y)**2)
-
-            while sqrt((xCurrent - trackPoint.x)**2 + (yCurrent - trackPoint.y)**2) >= self.goalDist:
-
-                # print 'yo'
-
-                dx = self.velocity*cos(thetaCurrent)*self.dt
-                dy = self.velocity*sin(thetaCurrent)*self.dt
-                
-                xDistance = trackPoint.x-xCurrent
-                yDistance = trackPoint.y-yCurrent
-                L = np.sqrt(xDistance**2 + yDistance**2)
-                alpha1 = atan2(yDistance,xDistance)
-                # if alpha1<0:
-                #   alpha2 = alpha1+(2*pi) - thetaCurrent
-                # else:
-                #   alpha2 = alpha1 - thetaCurrent
-                omega = 2*self.velocity*sin(alpha1)/L
-                delta = atan(omega*self.wheelBase/self.velocity)
-                delta = delta*self.steeringRatio*180./np.pi
-                delta = -delta              
-                dtheta = (self.velocity/self.wheelBase)*tan(delta)
-
-                xCurrent += dx*self.dt
-                yCurrent += dy*self.dt
-                thetaCurrent += dtheta*self.dt
-                states.append([deepcopy(xCurrent),deepcopy(yCurrent),deepcopy(thetaCurrent)])
+            print sqrt((xCurrent - trackPoint.x) ** 2 + (yCurrent - trackPoint.y) ** 2)
+            while sqrt((xCurrent - trackPoint.x) ** 2 + (yCurrent - trackPoint.y) ** 2) >= self.goalDist:
+                dx = self.velocity * cos(thetaCurrent) * self.dt
+                dy = self.velocity * sin(thetaCurrent) * self.dt
+                xDistance = trackPoint.x - xCurrent
+                yDistance = trackPoint.y - yCurrent
+                L = np.sqrt(xDistance ** 2 + yDistance ** 2)
+                alpha1 = atan2(yDistance, xDistance)
+                omega = 2 * self.velocity * sin(alpha1) / L
+                delta = atan(omega * self.wheelBase / self.velocity)
+                delta = delta * self.steeringRatio * 180.0 / np.pi
+                delta = -delta
+                dtheta = self.velocity / self.wheelBase * tan(delta)
+                xCurrent += dx * self.dt
+                yCurrent += dy * self.dt
+                thetaCurrent += dtheta * self.dt
+                states.append([deepcopy(xCurrent), deepcopy(yCurrent), deepcopy(thetaCurrent)])
                 controls.append(delta)
 
-        return np.array(states), np.array(controls)
+        return (np.array(states), np.array(controls))
 
-    def computeControlInput(self,currentPosition,trackPoint,velocity,wheelBase,steeringRatio):
-        xDistance = trackPoint[0]-currentPosition[0]
-        yDistance = trackPoint[1]-currentPosition[1]
-        L = np.sqrt(xDistance**2 + yDistance**2)
-        alpha1 = atan2(yDistance,xDistance)
-        omega = 2*velocity*sin(alpha1)/L
-        delta = atan(omega*wheelBase/velocity)
-        delta = delta*steeringRatio*180./np.pi
+    def computeControlInput(self, currentPosition, trackPoint, velocity, wheelBase, steeringRatio):
+        xDistance = trackPoint[0] - currentPosition[0]
+        yDistance = trackPoint[1] - currentPosition[1]
+        L = np.sqrt(xDistance ** 2 + yDistance ** 2)
+        alpha1 = atan2(yDistance, xDistance)
+        omega = 2 * velocity * sin(alpha1) / L
+        delta = atan(omega * wheelBase / velocity)
+        delta = delta * steeringRatio * 180.0 / np.pi
         delta = -delta
         return delta
 
-    def runKinematicModel(self,initialState,numSteps,dt,delta,velocity,wheelBase,steeringRatio):
-        states = np.zeros((numSteps,3))
-        states[0,:] = initialState
-
-        for i in range((1,numSteps)):
-
-            deltaDegrees = -1*(delta)/steeringRatio
-            delta = deltaDegrees*np.pi/180.
-            
-            dx = velocity*cos(states[i,2])
-            dy = velocity*sin(states[i,2])
-            dtheta = (velocity/wheelBase)*tan(delta)
-
-            states[i,:] = states[-1,:] + dt*np.array([dx, dy, dtheta])
+    def runKinematicModel(self, initialState, numSteps, dt, delta, velocity, wheelBase, steeringRatio):
+        states = np.zeros((numSteps, 3))
+        states[0, :] = initialState
+        for i in range((1, numSteps)):
+            deltaDegrees = -1 * delta / steeringRatio
+            delta = deltaDegrees * np.pi / 180.0
+            dx = velocity * cos(states[i, 2])
+            dy = velocity * sin(states[i, 2])
+            dtheta = velocity / wheelBase * tan(delta)
+            states[i, :] = states[-1, :] + dt * np.array([dx, dy, dtheta])
 
         return states
 
-    def runKinematicModelControls(self,initialState,numSteps,dt,spline,velocity,wheelBase,steeringRatio):
-        states = np.zeros((numSteps,3))
-        states[0,:] = initialState
-
-        for i in range(1,numSteps):
-
+    def runKinematicModelControls(self, initialState, numSteps, dt, spline, velocity, wheelBase, steeringRatio):
+        states = np.zeros((numSteps, 3))
+        states[0, :] = initialState
+        for i in range(1, numSteps):
             delta = spline(i)
             print 'delta: ' + str(delta)
-            deltaDegrees = -1*(delta)/steeringRatio
-            delta = deltaDegrees*np.pi/180.
-            
-            dx = velocity*cos(states[i-1,2])
+            deltaDegrees = -1 * delta / steeringRatio
+            delta = deltaDegrees * np.pi / 180.0
+            dx = velocity * cos(states[i - 1, 2])
             print 'dx: ' + str(dx)
-            dy = velocity*sin(states[i-1,2])
-            print 'states[i,2]: ' + str(states[i,2])
-            print 'sin(states[i,2]): ' + str(sin(states[i,2]))
+            dy = velocity * sin(states[i - 1, 2])
+            print 'states[i,2]: ' + str(states[i, 2])
+            print 'sin(states[i,2]): ' + str(sin(states[i, 2]))
             print 'dy: ' + str(dy)
-            dtheta = (velocity/wheelBase)*tan(delta)
-            print 'dtheta: ' + str(dt*dtheta)
-            print 'states[i,2]: ' + str(states[i,2])
-
-            states[i,:] = states[i-1,:] + dt*np.array([dx, dy, dtheta])
-            print 'states[i,2]: ' + str(states[i,2])
+            dtheta = velocity / wheelBase * tan(delta)
+            print 'dtheta: ' + str(dt * dtheta)
+            print 'states[i,2]: ' + str(states[i, 2])
+            states[i, :] = states[i - 1, :] + dt * np.array([dx, dy, dtheta])
+            print 'states[i,2]: ' + str(states[i, 2])
 
         return states
