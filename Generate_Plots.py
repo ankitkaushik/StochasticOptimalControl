@@ -2,7 +2,7 @@ import os, errno
 import sys
 import time
 from copy import deepcopy
-import cPickle
+import cPickle, dill
 from subprocess import call
 
 import matplotlib
@@ -142,6 +142,9 @@ vGoal = Vertex(9.,0.,0.,10.,0.,0)
 
 alphas = [0.25,0.5,1.0]
 obstacleTypes = ['single', 'double']
+runTypes = ['rrt','pirrt']
+runType = runTypes[1]
+useRRTStar = False
 
 # Create directory to save files
 
@@ -149,22 +152,60 @@ obstacleTypes = ['single', 'double']
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRT_steer_controlled/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRTStar_steer_uncontrolled/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRTStar_steer_controlled/'
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/demo_PIRRT_RRT_uncontrolled_steering_double_obstacle/'
-
-print saveDir
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_single_obstacle_alpha_0.25_with_noise/'
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_single_obstacle_alpha_0.5_with_noise/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_single_obstacle_alpha_1.0_with_noise/'
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_double_obstacle_alpha_0.25_with_noise/'
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_double_obstacle_alpha_0.5_with_noise/'
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_double_obstacle_alpha_1.0_with_noise/'
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_RRT/'
 
 try:
     os.makedirs(saveDir)
 except OSError as e:
     if e.errno != errno.EEXIST:
         raise
+call('rm '+saveDir+'*',shell=True)
 
-plotStore = plotStore(vInit,vGoal,saveDir)
+if runType == 'rrt':
+    if useRRTStar:
+        for o in obstacleTypes:
+            for a in alphas:
+                pS = plotStore(vInit,vGoal,saveDir)
+                rrt = RRTStar(vInit,vGoal,alpha=a,plotStore=pS,plottingInterval='end',obstacleType=o)
+                rrt.extractPath()
+    else:
+        for o in obstacleTypes:
+            for a in alphas:
+                pS = plotStore(vInit,vGoal,saveDir)
+                rrt = RRT(vInit,vGoal,alpha=a,plotStore=pS,plottingInterval='end',obstacleType=o)
+                rrt.extractPath()
 
-# rrt = RRT(vInit,vGoal,alpha=alphas[0],plotStore=plotStore,plottingInterval='notend',obstacleType=obstacleTypes[0])
-# rrt.extractPath()
-# rrt = RRTStar(vInit,vGoal,alpha=alphas[2],plotStore=plotStore,plottingInterval='notend',obstacleType=obstacleTypes[1])
-# rrt.extractPath()
+if runType == 'pirrt':
+    pi_rrt = PI_RRT(vInit,vGoal,alphas[2],saveDir,obstacleType = 'single')
+    # pi_rrt.generateTrajectoriesMP()
+    pirrtTimes = []
+    i = 0
+    while pi_rrt.reachedGoal(pi_rrt.path[-1]) is False:
+        print pi_rrt.path[-1].getState()
+        startTime = time.time()    
+        print 'COUNT '+ str(i)
+        if pi_rrt.runRRT():
+            if pi_rrt.generateTrajectories2():
+                pi_rrt.executeControl2(*pi_rrt.computeVariation2())
+                print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
+                pirrtTimes.append(time.time()-startTime)
+                print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
+                i += 1
+                print pi_rrt.path[-1].getState()
+            else:
+                del pi_rrt.path[-1]
+        else:
+            del pi_rrt.path[-1]
+        dill.dump(pi_rrt,open(saveDir+'PI_RRT_'+str(i)+'.p','wb'))
+
+    pi_rrt.RRT.plotAll()
+# rc = call(".//home/ankit/Documents/Thesis/createVideo.sh",shell=True)    
 
 # for obstacleType in obstacleTypes:
 #     pls = plotStore(vInit,vGoal,saveDir)
@@ -220,25 +261,3 @@ plotStore = plotStore(vInit,vGoal,saveDir)
 # print RRTcompletionIterations
 # print RRTcompletionTimes 
 
-pi_rrt = PI_RRT(vInit,vGoal,alphas[0],saveDir,useRRTStar=False)
-pirrtTimes = []
-i = 0
-while pi_rrt.reachedGoal(pi_rrt.path[-1]) is False:
-    print pi_rrt.path[-1].getState()
-    startTime = time.time()    
-    print 'COUNT '+ str(i)
-    if pi_rrt.runRRT():
-        if pi_rrt.generateTrajectories2():
-            pi_rrt.executeControl2(*pi_rrt.computeVariation2())
-            print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
-            pirrtTimes.append(time.time()-startTime)
-            print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
-            i += 1
-            print pi_rrt.path[-1].getState()
-        else:
-            del pi_rrt.path[-1]
-    else:
-        del pi_rrt.path[-1]
-
-pi_rrt.RRT.plotAll()
-# rc = call(".//home/ankit/Documents/Thesis/createVideo.sh",shell=True)

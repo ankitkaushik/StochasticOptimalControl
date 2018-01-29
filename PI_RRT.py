@@ -13,7 +13,7 @@ import multiprocessing as mp
 
 class PI_RRT(object):
 
-    def __init__(self, vInit, vGoal, alpha, plotSaveDir, useRRTStar = True, controlledSteering = False, obstacleType = 'double'):
+    def __init__(self, vInit, vGoal, alpha, plotSaveDir, useRRTStar = False, controlledSteering = False, obstacleType = 'double'):
         self.vInit = vInit
         self.vGoal = vGoal
         self.goalDist = 1
@@ -125,7 +125,8 @@ class PI_RRT(object):
 
     def generateTrajectoriesMP(self):
         pool = mp.Pool()
-        self.trajectories = pool.map(self.runRRTMP, range(5))
+        print pool.map(self.runRRTMP, range(5))
+        # self.trajectories = pool.map(self.runRRTMP, range(5))
 
     def computeVariation(self):
         S = np.zeros(len(self.trajectories))
@@ -316,6 +317,7 @@ class PI_RRT(object):
             dy = self.velocity * sin(self.newPathVertices[-1].theta)
             print 'dy: ' + str(dy)
             dtheta = self.controlSplinePathIntegral(self.controlDiscretation * i) / self.r
+            dtheta += self.RRT.generateNoise()
             print 'dtheta: ' + str(dtheta)
             newVertex = Vertex(self.newPathVertices[-1].x + self.controlDiscretation * dx, self.newPathVertices[-1].y + self.controlDiscretation * dy, self.newPathVertices[-1].theta + dtheta, self.newPathVertices[-1].time + self.controlDiscretation * i, dtheta)
             if self.RRT.obstacleFree(newVertex, self.newPathVertices[-1]) == True:
