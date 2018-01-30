@@ -11,3 +11,4 @@ class plotStore(object):
 		self.plotSaveDir = plotSaveDir
 		self.RRTcompletionTimes = []
 		self.RRTcompletionIterations = []
+		self.RRTpaths=[]

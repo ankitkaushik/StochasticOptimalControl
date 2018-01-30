@@ -111,8 +111,9 @@ def plotObstacles(RRT):
         obstaclePlot = plot(x,y,'r')
 
 # Variables
-# vInit = Vertex(-9.,0.,0.,0.,0.,0)
-vInit = Vertex(-6.705127720699081, 0.10337839256046491, 0.019522340268920083, 4.500000000000001, 0.039278823874604928, -1)
+vInit = Vertex(-9.,0.,0.,0.,0.,0)
+# vInit = Vertex(-6.701104461907802, 0.03323463812282749, 0.023855731871954694, 4.500000000000001, -0.01316966949165381, -1)
+# vInit = Vertex(-6.705127720699081, 0.10337839256046491, 0.019522340268920083, 4.500000000000001, 0.039278823874604928, -1)
 #Fail for double
 # vInit = Vertex(-5.003824576201526, -0.013088832596684832, 0.053600875067695924, 0.0, 0.0, -1)
 
@@ -154,10 +155,11 @@ useRRTStar = False
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_single_obstacle_alpha_0.25_with_noise/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_single_obstacle_alpha_0.5_with_noise/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_single_obstacle_alpha_1.0_with_noise/'
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_double_obstacle_alpha_0.25_with_noise/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_double_obstacle_alpha_0.25_with_noise_2/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_double_obstacle_alpha_0.5_with_noise/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_double_obstacle_alpha_1.0_with_noise/'
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_RRT/'
+
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_RRT_2/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/dummy/'
 
 try:
@@ -183,8 +185,9 @@ if runType == 'rrt':
         for o in obstacleTypes:
             for a in alphas:
                 pS = plotStore(vInit,vGoal,saveDir)
-                rrt = RRT(vInit,vGoal,alpha=a,plotStore=pS,plottingInterval='end',obstacleType=o)
-                rrt.extractPath()
+                for i in range(100):                    
+                    rrt = RRT(vInit,vGoal,alpha=a,plotStore=pS,plottingInterval='end',obstacleType=o)
+                    rrt.extractPath()
 
 if runType == 'pirrt':
     pi_rrt = PI_RRT(vInit,vGoal,alphas[0],saveDir,obstacleType = 'double')

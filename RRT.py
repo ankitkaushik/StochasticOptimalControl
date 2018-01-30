@@ -134,7 +134,7 @@ class RRT(object):
 
         return successFlag
 
-    def extractPath(self, stopCount = 1000, stopAtGoal = True):
+    def extractPath(self, stopCount = np.inf, stopAtGoal = True):
         successFlag = True
         self.path = []
         self.iterationCount = 0
@@ -172,6 +172,7 @@ class RRT(object):
 
             if self.plotStore is not None:
                 self.plotAll()
+                self.plotStore.RRTpaths.append(self.pathReversed)
             return successFlag
         else:
             for i in range(stopCount):
@@ -336,12 +337,17 @@ class RRT(object):
 
         try:
             rrtPathPlot = plt.plot([ v.x for v in self.pathReversed ], [ v.y for v in self.pathReversed ], '-b', linewidth=3.0)
+            for p in self.plotStore.RRTpaths:
+                plt.plot([ v.x for v in p ], [ v.y for v in p ], '-b', linewidth=3.0)
         except:
             pass
 
         pirrtPathPlot = plt.plot([ v.x for v in self.plotStore.path ], [ v.y for v in self.plotStore.path ], '-r', linewidth=7.0)
         rrtVerticesPlot = plt.scatter([ v.x for v in self.plotStore.allRRTVertices ], [ v.y for v in self.plotStore.allRRTVertices ], c='cyan')
-        rrtSampledPointsPlot = plt.scatter([ v.x for v in self.plotStore.sampledPoints ], [ v.y for v in self.plotStore.sampledPoints ], c='orange')
+        # rrtVerticesPlot = plt.scatter([ v.x for v in self.vertices ], [ v.y for v in self.vertices ], c='cyan')
+        # rrtVerticesPlot = None
+        # rrtSampledPointsPlot = plt.scatter([ v.x for v in self.plotStore.sampledPoints ], [ v.y for v in self.plotStore.sampledPoints ], c='orange')
+        rrtSampledPointsPlot = None
         initPlot = plt.scatter(self.plotStore.vInit.x, self.plotStore.vInit.y, c='r')
         goalPlot = plt.scatter(self.plotStore.vGoal.x, self.plotStore.vGoal.y, c='g')
         plt.legend([initPlot,
