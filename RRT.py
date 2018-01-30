@@ -126,6 +126,7 @@ class RRT(object):
                                 # print 'plotting!'
                                 self.plotAll()
                     count += 1
+                    print 'extend count is ' + str(count)
             else:
                 print stopCount
                 successFlag = False
@@ -133,7 +134,7 @@ class RRT(object):
 
         return successFlag
 
-    def extractPath(self, stopCount = np.inf, stopAtGoal = True):
+    def extractPath(self, stopCount = 1000, stopAtGoal = True):
         successFlag = True
         self.path = []
         self.iterationCount = 0
@@ -143,10 +144,12 @@ class RRT(object):
             # while self.reachedGoal(lastVertex) == False:
             while np.any([self.reachedGoal(v) for v in self.vertices]) == False:
                 if self.iterationCount > stopCount:
-                    break
+                    print 'RRT failed with ' + str(self.vInit.getState())
+                    successFlag = False
+                    return successFlag
                 if self.extend():
                     lastVertex = self.vertices[-1]
-                    # print 'RRT iteration count is: ' + str(self.iterationCount)
+                    print 'RRT iteration count is: ' + str(self.iterationCount)
                     self.iterationCount += 1
                 else:
                     successFlag = False

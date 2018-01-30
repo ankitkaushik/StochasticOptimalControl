@@ -111,8 +111,8 @@ def plotObstacles(RRT):
         obstaclePlot = plot(x,y,'r')
 
 # Variables
-vInit = Vertex(-9.,0.,0.,0.,0.,0)
-
+# vInit = Vertex(-9.,0.,0.,0.,0.,0)
+vInit = Vertex(-6.705127720699081, 0.10337839256046491, 0.019522340268920083, 4.500000000000001, 0.039278823874604928, -1)
 #Fail for double
 # vInit = Vertex(-5.003824576201526, -0.013088832596684832, 0.053600875067695924, 0.0, 0.0, -1)
 
@@ -123,7 +123,6 @@ vInit = Vertex(-9.,0.,0.,0.,0.,0)
 
 # v = vInit
 # v = Vertex(-2.2,1.25, -0.35328948476828181, 0.0, 0.0, -1)
-
 # vInit = Vertex(-4.405433256434646, 0.1731660975960875, 0.15843846552639818, 0.0, 0.0, -1)
 # vInit = Vertex(-2.3075439748551645, -1.2146455385001258, -0.12745521375963603, 0.0, 0.0, -1)
 # vInit = Vertex(-2.1438493535428647, -0.6990585839364634, -0.023160198189374023, 0.0, 0.0, -1)
@@ -154,11 +153,12 @@ useRRTStar = False
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRTStar_steer_controlled/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_single_obstacle_alpha_0.25_with_noise/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_single_obstacle_alpha_0.5_with_noise/'
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_single_obstacle_alpha_1.0_with_noise/'
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_double_obstacle_alpha_0.25_with_noise/'
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_single_obstacle_alpha_1.0_with_noise/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_double_obstacle_alpha_0.25_with_noise/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_double_obstacle_alpha_0.5_with_noise/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_double_obstacle_alpha_1.0_with_noise/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_RRT/'
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/dummy/'
 
 try:
     os.makedirs(saveDir)
@@ -166,6 +166,11 @@ except OSError as e:
     if e.errno != errno.EEXIST:
         raise
 call('rm '+saveDir+'*',shell=True)
+
+# pS = plotStore(vInit,vGoal,saveDir)
+# rrt = RRT(vInit,vGoal,alpha=0.25,plotStore=pS,plottingInterval='end',obstacleType='double')
+# rrt.extractPath()
+# sys.exit()
 
 if runType == 'rrt':
     if useRRTStar:
@@ -182,7 +187,7 @@ if runType == 'rrt':
                 rrt.extractPath()
 
 if runType == 'pirrt':
-    pi_rrt = PI_RRT(vInit,vGoal,alphas[2],saveDir,obstacleType = 'single')
+    pi_rrt = PI_RRT(vInit,vGoal,alphas[0],saveDir,obstacleType = 'double')
     # pi_rrt.generateTrajectoriesMP()
     pirrtTimes = []
     i = 0
@@ -198,10 +203,10 @@ if runType == 'pirrt':
                 print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
                 i += 1
                 print pi_rrt.path[-1].getState()
-            else:
-                del pi_rrt.path[-1]
-        else:
-            del pi_rrt.path[-1]
+        #     else:
+        #         del pi_rrt.path[-1]
+        # else:
+        #     del pi_rrt.path[-1]
         dill.dump(pi_rrt,open(saveDir+'PI_RRT_'+str(i)+'.p','wb'))
 
     pi_rrt.RRT.plotAll()
