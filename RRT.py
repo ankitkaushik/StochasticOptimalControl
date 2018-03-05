@@ -18,13 +18,13 @@ pylab.rcParams.update(params)
 
 class RRT(object):
 
-    def __init__(self, vInit, vGoal, dt = 0.1, velocity = 2.3, wheelBase = 2.0, steeringRatio = 1, alpha = 0.25, r = 4.0, controlledSteering = False, plotStore = None, obstacleType = 'double', plottingInterval = 'end'):
+    def __init__(self, vInit, vGoal, searchSpace, dt, velocity, wheelBase, steeringRatio, alpha, r, controlledSteering, plotStore, obstacleType, plottingInterval):
         self.vInit = vInit
         self.vGoal = vGoal
         self.goalDist = 1
         self.vertices = [vInit]
-        self.searchSpace = [min(vInit.x, vInit.y), max(vGoal.x, vGoal.y)]
-        self.searchSpace = [-9, 9]
+        self.verticesSteered = [vInit]        
+        self.searchSpace = searchSpace
         self.dt = dt
         self.velocity = velocity
         self.wheelBase = wheelBase
@@ -34,18 +34,18 @@ class RRT(object):
         self.controlledSteering = controlledSteering
         self.sampledPoints = []
         self.obstacleType = obstacleType
-        self.createObstacles(self.obstacleType)
+        self.createObstacles()
         print 'rrt initialized with ' + str(self.vInit.getState())
         self.plotStore = plotStore
         self.plottingInterval = plottingInterval
 
     
-    def createObstacles(self, obstacleType = 'single'):
+    def createObstacles(self):
         self.obstacles = []
-        if obstacleType == 'single':
+        if self.obstacleType == 'single':
             self.obstacles.append(Obstacle(center=[-2, 1.25], size=[0.5, 2]))
             self.obstacles.append(Obstacle(center=[-2, -1.25], size=[0.5, 2]))
-        elif obstacleType == 'double':
+        elif self.obstacleType == 'double':
             self.obstacles.append(Obstacle(center=[-2, 0.0], size=[3.5, 1.2]))
             self.obstacles.append(Obstacle(center=[-2, 1.75], size=[3.5, 1.5]))
             self.obstacles.append(Obstacle(center=[-2, -1.75], size=[3.5, 1.5]))
@@ -66,12 +66,13 @@ class RRT(object):
         if path == False:
             vNearest = self.vertices[0]
             vNearestIndex = 0
+            # for i, v in enumerate(self.verticesSteered):
             for i, v in enumerate(self.vertices):
                 if self.getDistance(v, vRand) < self.getDistance(vNearest, vRand):
                     vNearest = v
                     vNearestIndex = i
-
             return (vNearest, vNearestIndex)
+
         if path == True:
             vNearest = self.path[0]
             vNearestIndex = 0
@@ -90,7 +91,6 @@ class RRT(object):
             if self.onObstacle(vRand) == True:
                 vRand.x = self.vGoal.x
                 vRand.y = self.vGoal.y
-
         return vRand
 
     def extend(self, stopCount = 1000):
@@ -102,8 +102,8 @@ class RRT(object):
                 newVertices = None
                 vRand = self.sample()
                 self.sampledPoints.append(vRand)
-                if self.plotStore is not None:
-                    self.plotStore.sampledPoints.append(vRand)
+                # if self.plotStore is not None:
+                #     self.plotStore.sampledPoints.append(vRand)
                 vNearest, vNearestIndex = self.getNN(vRand)
                 if self.controlledSteering is False:
                     # print 'using uncontrolled steering'
@@ -117,8 +117,9 @@ class RRT(object):
                     if obstacleFreeVertices == True:
                         for i in range(newVertices.shape[0]):
                             self.vertices.append(Vertex(*newVertices[i]))
-                            if self.plotStore is not None:
-                                self.plotStore.allRRTVertices.append(Vertex(*newVertices[i]))
+                            # if self.plotStore is not None:
+                            #     self.plotStore.allRRTVertices.append(Vertex(*newVertices[i]))
+                        self.verticesSteered.append(Vertex(*newVertices[-1]))
 
                     if self.plotStore is not None:
                         if self.plottingInterval != 'end':
@@ -189,7 +190,7 @@ class RRT(object):
 
     def steerUncontrolled(self, vNearest, vNearestIndex, vRand):
         numSteps = 10
-        numTries = 1
+        numTries = 5
         minDist = float('inf')
         startTime = time.time()
         newVertices = np.zeros((numTries, numSteps + 1, 6))
@@ -242,9 +243,13 @@ class RRT(object):
         startTime = time.time()
         newVertices = np.zeros((numSteps + 1, 10))
         if hasattr(self, 'controlSpline'):
-            dtheta = self.controlSpline(0.0) / self.r
+            # dtheta = self.controlSpline(0.0) / self.r
+            # print 'using control spline!'
+            dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
+            print 'using pure pursuit but should really be using control spline!'
         else:
             dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
+            print 'using pure pursuit!'
         dtheta += self.generateNoise()
         dx = self.velocity * cos(vNearest.theta)
         dy = self.velocity * sin(vNearest.theta)
@@ -343,8 +348,8 @@ class RRT(object):
             pass
 
         pirrtPathPlot = plt.plot([ v.x for v in self.plotStore.path ], [ v.y for v in self.plotStore.path ], '-r', linewidth=7.0)
-        rrtVerticesPlot = plt.scatter([ v.x for v in self.plotStore.allRRTVertices ], [ v.y for v in self.plotStore.allRRTVertices ], c='cyan')
-        # rrtVerticesPlot = plt.scatter([ v.x for v in self.vertices ], [ v.y for v in self.vertices ], c='cyan')
+        # rrtVerticesPlot = plt.scatter([ v.x for v in self.plotStore.allRRTVertices ], [ v.y for v in self.plotStore.allRRTVertices ], c='cyan')
+        rrtVerticesPlot = plt.scatter([ v.x for v in self.vertices ], [ v.y for v in self.vertices ], c='green')
         # rrtVerticesPlot = None
         # rrtSampledPointsPlot = plt.scatter([ v.x for v in self.plotStore.sampledPoints ], [ v.y for v in self.plotStore.sampledPoints ], c='orange')
         rrtSampledPointsPlot = None
@@ -360,6 +365,8 @@ class RRT(object):
          'Vertices',
          'Sampled Points'], loc=3)
         plt.grid()
+        plt.xlim(-10., 10.)
+        plt.ylim(-10., 10.)
         plt.savefig(self.plotStore.plotSaveDir + 'RRT_alpha_' + str(self.alpha) + '_obstacle_' + self.obstacleType + '_' + str(self.plotStore.plotIndex) + '.png')
         self.plotStore.plotIndex += 1
 

@@ -13,9 +13,10 @@ import multiprocessing as mp
 
 class PI_RRT(object):
 
-    def __init__(self, vInit, vGoal, alpha, plotSaveDir, useRRTStar = False, controlledSteering = False, obstacleType = 'double'):
+    def __init__(self, vInit, vGoal, alpha, plotSaveDir, useRRTStar, controlledSteering, obstacleType):
         self.vInit = vInit
         self.vGoal = vGoal
+        self.searchSpace = [min(vInit.x, vInit.y), max(vGoal.x, vGoal.y)]
         self.goalDist = 1
         self.path = [vInit]
         self.alpha = alpha
@@ -40,6 +41,7 @@ class PI_RRT(object):
         self.useRRTStar = useRRTStar
         self.controlledSteering = controlledSteering
         self.obstacleType = obstacleType
+        self.plottingInterval = 'end'
 
     def reachedGoal(self, v):
         if sqrt((v.x - self.vGoal.x) ** 2 + (v.y - self.vGoal.y) ** 2) <= self.goalDist:
@@ -53,7 +55,7 @@ class PI_RRT(object):
         if self.useRRTStar:
             self.RRT = RRTStar(self.path[-1], self.vGoal, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.plotStore)
         else:
-            self.RRT = RRT(self.path[-1], self.vGoal, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore, self.obstacleType)
+            self.RRT = RRT(self.path[-1], self.vGoal, self.searchSpace, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore, self.obstacleType, self.plottingInterval)
         print 'RRT initialized'
         if self.RRT.extractPath():
             print 'RRT path extracted'
@@ -109,7 +111,7 @@ class PI_RRT(object):
             if self.useRRTStar:
                 newRRT = RRTStar(self.RRT.vInit, self.RRT.vGoal, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.plotStore)
             else:
-                newRRT = RRT(self.RRT.vInit, self.RRT.vGoal, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore, self.obstacleType)
+                newRRT = RRT(self.RRT.vInit, self.RRT.vGoal, self.searchSpace, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore, self.obstacleType, self.plottingInterval)
                 newRRT.assignControlSpline(self.controlSplineRRT)
             if newRRT.extractPath():
                 print 'RRT path extracted'

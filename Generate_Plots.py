@@ -112,56 +112,23 @@ def plotObstacles(RRT):
 
 # Variables
 vInit = Vertex(-9.,0.,0.,0.,0.,0)
-# vInit = Vertex(-6.701104461907802, 0.03323463812282749, 0.023855731871954694, 4.500000000000001, -0.01316966949165381, -1)
-# vInit = Vertex(-6.705127720699081, 0.10337839256046491, 0.019522340268920083, 4.500000000000001, 0.039278823874604928, -1)
-#Fail for double
-# vInit = Vertex(-5.003824576201526, -0.013088832596684832, 0.053600875067695924, 0.0, 0.0, -1)
-
-# vInit = Vertex(3.556400689218416, 1.1122687085435525, 0.27198546370193616, 0.0, 0.0, -1)
-# vInit = Vertex(-2.322802078480477, -1.5682812432844735, -0.43168166012273512, 0.0, 0.0, -1)
-# Latest fail on XPS
-# vInit = Vertex(2.333759289549664, -1.0325296926557328, -0.35328948476828181, 0.0, 0.0, -1)
-
-# v = vInit
-# v = Vertex(-2.2,1.25, -0.35328948476828181, 0.0, 0.0, -1)
-# vInit = Vertex(-4.405433256434646, 0.1731660975960875, 0.15843846552639818, 0.0, 0.0, -1)
-# vInit = Vertex(-2.3075439748551645, -1.2146455385001258, -0.12745521375963603, 0.0, 0.0, -1)
-# vInit = Vertex(-2.1438493535428647, -0.6990585839364634, -0.023160198189374023, 0.0, 0.0, -1)
-# vInit = Vertex(-3.274496147453313, -0.4380171488751353, -0.072003545741959094, 0.0, 0.0, -1)
-# vInit = Vertex(-2.8, -1.2, -0.072003545741959094, 0.0, 0.0, -1)
-# vInit = Vertex(-2.1230469516087718, -0.28321651336500553, 0.093621076239903567, 0.0, 0.0, -1)
-# vInit = Vertex(3.5579065654977633, -0.19329584063790506, -0.025624273325923833, 0.0, 0.0, -1)
-# vInit = Vertex(-2.1230469516087718, -0.28321651336500553, 0.093621076239903567, 0.0, 0.0, -1)
-# vInit = Vertex(3.5579065654977633, -0.19329584063790506, -0.025624273325923833, 0.0, 0.0, -1)
-# vInit = Vertex(-2.22621023679345, -1.0965525803342375, 0.095902618444505039, 0.0, 0.0, -1)
-# vInit = Vertex(2.191991582749325, 1.0115514363335742, 0.62800887258853244, 0.0, 0.0, -1)
-# vInit = Vertex(-7.,2.,0.,0.,0.,0)
-# vInit = Vertex(-7.,-2.,0.,0.,0.,0)
-# vInit = Vertex(-5.,0.,0.,0.,0.,0)
 vGoal = Vertex(9.,0.,0.,10.,0.,0)
-
 alphas = [0.25,0.5,1.0]
+alpha = alphas[2]
 obstacleTypes = ['single', 'double']
-runTypes = ['rrt','pirrt']
-runType = runTypes[1]
+obstacleType = obstacleTypes[0]
+runTypes = ['rrt','rrtloop','pirrt']
+runType = runTypes[2]
 useRRTStar = False
+controlledSteering = True
+plottingInterval='end'
 
 # Create directory to save files
-
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRT_steer_uncontrolled/'
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRT_steer_controlled/'
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRTStar_steer_uncontrolled/'
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/reportImages_RRTStar_steer_controlled/'
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_single_obstacle_alpha_0.25_with_noise/'
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_single_obstacle_alpha_0.5_with_noise/'
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_single_obstacle_alpha_1.0_with_noise/'
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_double_obstacle_alpha_0.25_with_noise_2/'
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_double_obstacle_alpha_0.5_with_noise/'
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_double_obstacle_alpha_1.0_with_noise/'
-
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_RRT_2/'
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/dummy/'
-
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_with_noise_numTries5/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/TSIO_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering/'
+# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_RRT_controlledSteering/'
+print saveDir
+# sys.exit()
 try:
     os.makedirs(saveDir)
 except OSError as e:
@@ -169,28 +136,28 @@ except OSError as e:
         raise
 call('rm '+saveDir+'*',shell=True)
 
-# pS = plotStore(vInit,vGoal,saveDir)
-# rrt = RRT(vInit,vGoal,alpha=0.25,plotStore=pS,plottingInterval='end',obstacleType='double')
-# rrt.extractPath()
-# sys.exit()
-
 if runType == 'rrt':
+	pS = plotStore(vInit,vGoal,saveDir)
+	rrt = RRT(vInit,vGoal,alpha=alpha,plotStore=pS,controlledSteering=controlledSteering,plottingInterval=plottingInterval,obstacleType=obstacleType)
+	rrt.extractPath()
+
+if runType == 'rrtloop':
     if useRRTStar:
         for o in obstacleTypes:
             for a in alphas:
                 pS = plotStore(vInit,vGoal,saveDir)
-                rrt = RRTStar(vInit,vGoal,alpha=a,plotStore=pS,plottingInterval='end',obstacleType=o)
+                rrt = RRTStar(vInit,vGoal,alpha=a,plotStore=pS,plottingInterval=plottingInterval,obstacleType=o)
                 rrt.extractPath()
     else:
         for o in obstacleTypes:
             for a in alphas:
                 pS = plotStore(vInit,vGoal,saveDir)
                 for i in range(100):                    
-                    rrt = RRT(vInit,vGoal,alpha=a,plotStore=pS,plottingInterval='end',obstacleType=o)
+                    rrt = RRT(vInit,vGoal,alpha=a,plotStore=pS,plottingInterval=plottingInterval,obstacleType=o)
                     rrt.extractPath()
 
 if runType == 'pirrt':
-    pi_rrt = PI_RRT(vInit,vGoal,alphas[0],saveDir,obstacleType = 'double')
+    pi_rrt = PI_RRT(vInit,vGoal,alpha,saveDir,useRRTStar,controlledSteering,obstacleType)
     # pi_rrt.generateTrajectoriesMP()
     pirrtTimes = []
     i = 0
@@ -206,6 +173,8 @@ if runType == 'pirrt':
                 print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
                 i += 1
                 print pi_rrt.path[-1].getState()
+        pi_rrt.RRT.plotAll()
+        pi_rrt.plotStore.RRTpaths = []
         #     else:
         #         del pi_rrt.path[-1]
         # else:
