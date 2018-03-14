@@ -38,6 +38,7 @@ class RRT(object):
         print 'rrt initialized with ' + str(self.vInit.getState())
         self.plotStore = plotStore
         self.plottingInterval = plottingInterval
+        self.lastSteerOnly = True
 
     
     def createObstacles(self):
@@ -115,11 +116,14 @@ class RRT(object):
                     obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
                     # print obstacleFreeVertices
                     if obstacleFreeVertices == True:
-                        for i in range(newVertices.shape[0]):
-                            self.vertices.append(Vertex(*newVertices[i]))
-                            # if self.plotStore is not None:
-                            #     self.plotStore.allRRTVertices.append(Vertex(*newVertices[i]))
-                        self.verticesSteered.append(Vertex(*newVertices[-1]))
+                        if self.lastSteerOnly is False:
+                            for i in range(newVertices.shape[0]):
+                                self.vertices.append(Vertex(*newVertices[i]))
+                                # if self.plotStore is not None:
+                                #     self.plotStore.allRRTVertices.append(Vertex(*newVertices[i]))
+                        else:
+                            self.vertices.append(Vertex(*newVertices[0]))
+                            self.vertices.append(Vertex(*newVertices[-1]))
 
                     if self.plotStore is not None:
                         if self.plottingInterval != 'end':
@@ -164,8 +168,10 @@ class RRT(object):
             self.path.append(lastVertex)
             j = -1
             while self.vertices[j].parent is not 0:
+            	print self.vertices[int(self.vertices[j].parent)].time
                 self.path.append(self.vertices[int(self.vertices[j].parent)])
                 j = self.vertices[j].parent
+            self.path.append(self.vInit)
 
             self.pathReversed = []
             for v in reversed(self.path):
@@ -243,10 +249,9 @@ class RRT(object):
         startTime = time.time()
         newVertices = np.zeros((numSteps + 1, 10))
         if hasattr(self, 'controlSpline'):
-            # dtheta = self.controlSpline(0.0) / self.r
-            # print 'using control spline!'
-            dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
-            print 'using pure pursuit but should really be using control spline!'
+            dtheta = self.controlSpline(vNearest.time + self.dt) / self.r
+            # dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
+            print 'using control spline!'
         else:
             dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
             print 'using pure pursuit!'
@@ -256,24 +261,28 @@ class RRT(object):
         newVertices[0, 0:2] = np.array([vNearest.x, vNearest.y]) + self.dt * np.array([dx, dy])
         newVertices[(0, 2)] = vNearest.theta + dtheta
         newVertices[(0, 3)] = vNearest.time + self.dt
+        # newVertices[(0, 4)] = dtheta * self.r / self.dt
         newVertices[(0, 4)] = dtheta * self.r
         newVertices[(0, 5)] = vNearestIndex
         newVertexIndex = len(self.vertices)
-        currentVertex = Vertex(*newVertices[0])
         for i in range(1, numSteps + 1):
             dx = self.velocity * cos(newVertices[i - 1, 2])
             dy = self.velocity * sin(newVertices[i - 1, 2])
             newVertices[i, 0:2] = newVertices[i - 1, 0:2] + self.dt * np.array([dx, dy])
             if hasattr(self, 'controlSpline'):
-                dtheta = self.controlSpline(self.dt * i) / self.r
+                dtheta = self.controlSpline(newVertices[i - 1, 3] + self.dt) / self.r
+                # dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
             else:
                 dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
             dtheta += self.generateNoise()
             newVertices[i, 2] = newVertices[i - 1, 2] + dtheta
-            newVertices[i, 3] = newVertices[i - 1, 3] + i * self.dt
+            newVertices[i, 3] = newVertices[i - 1, 3] + self.dt
+            # newVertices[i, 4] = dtheta * self.r / self.dt
             newVertices[i, 4] = dtheta * self.r
-            newVertices[i, 5] = newVertexIndex + i - 1
-            currentVertex = Vertex(*newVertices[i])
+            if self.lastSteerOnly is False:
+                newVertices[i, 5] = newVertexIndex + i - 1
+            else:
+                newVertices[i, 5] = vNearestIndex
 
         return newVertices
 
@@ -343,7 +352,7 @@ class RRT(object):
         try:
             rrtPathPlot = plt.plot([ v.x for v in self.pathReversed ], [ v.y for v in self.pathReversed ], '-b', linewidth=3.0)
             for p in self.plotStore.RRTpaths:
-                plt.plot([ v.x for v in p ], [ v.y for v in p ], '-b', linewidth=3.0)
+                plt.plot([ v.x for v in p ], [ v.y for v in p ], linewidth=3.0)
         except:
             pass
 

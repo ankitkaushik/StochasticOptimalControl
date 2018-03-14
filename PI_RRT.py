@@ -125,6 +125,32 @@ class PI_RRT(object):
 
         return successFlag
 
+    def generateTrajectories3(self):
+        successFlag = True
+        self.trajectories = []
+        for i in range(self.M):
+            newRRT = []
+            newRRT.append(self.RRT.vInit)
+            numSteps = (self.RRT.pathReversed[-1].time-self.RRT.vInit.time)/self.dt
+            # for i,v in enumerate(self.RRT.pathReversed): 
+            for i in range(int(numSteps)):            
+                dx = self.RRT.velocity * cos(newRRT[-1].theta)
+                dy = self.RRT.velocity * sin(newRRT[-1].theta)
+                newX = newRRT[-1].x + self.dt*dx
+                newY = newRRT[-1].y + self.dt*dy
+                randomControlShift = self.RRT.generateNoise()
+                # newControl = self.controlSplineRRT(v.time)+randomControlShift
+                newControl = self.controlSplineRRT(i*self.dt)+randomControlShift
+                newTheta = newRRT[-1].theta + (self.controlSplineRRT(i*self.dt)*self.dt/self.r) + (randomControlShift/self.r)
+                newTime = i*self.dt
+                newVertex = [newX,newY,newTheta,newTime,newControl]
+                newRRT.append(Vertex(*newVertex))
+            self.trajectories.append(newRRT)
+            self.plotStore.RRTpaths.append(newRRT)
+        self.RRT.plotAll()
+                
+        return successFlag
+
     def generateTrajectoriesMP(self):
         pool = mp.Pool()
         print pool.map(self.runRRTMP, range(5))
@@ -204,10 +230,9 @@ class PI_RRT(object):
                 states[i, 0] = v.x
                 states[i, 1] = v.y
                 states[i, 2] = v.theta
-                states[i, 3] = self.RRT.dt * i
+                states[i, 3] = v.time
                 states[i, 4] = v.controlInput
 
-        print states.shape
         return states
 
     def computeVariation2(self):
@@ -236,6 +261,8 @@ class PI_RRT(object):
             totalCost += endStateDiff.dot(self.Qf).dot(endStateDiff.T)
             totalCost += np.trapz(noiseCosts[:-1], trajectoryStates[k, :len(trajectory) - 1, 3])
             totalCosts[k] = totalCost / regCoef
+
+        self.totalCosts = totalCosts
 
         trajectoryDesirability = np.exp(-totalCosts / self.Lambda)
         print 'trajectoryDesirability: ' + str(trajectoryDesirability)

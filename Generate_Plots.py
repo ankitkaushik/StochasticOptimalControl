@@ -114,18 +114,18 @@ def plotObstacles(RRT):
 vInit = Vertex(-9.,0.,0.,0.,0.,0)
 vGoal = Vertex(9.,0.,0.,10.,0.,0)
 alphas = [0.25,0.5,1.0]
-alpha = alphas[2]
+alpha = alphas[0]
 obstacleTypes = ['single', 'double']
 obstacleType = obstacleTypes[0]
 runTypes = ['rrt','rrtloop','pirrt']
 runType = runTypes[2]
 useRRTStar = False
 controlledSteering = True
-plottingInterval='end'
+plottingInterval='notend'
 
 # Create directory to save files
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_with_noise_numTries5/'
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/TSIO_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/March12_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering_generateTrajectories3/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_RRT_controlledSteering/'
 print saveDir
 # sys.exit()
@@ -162,11 +162,14 @@ if runType == 'pirrt':
     pirrtTimes = []
     i = 0
     while pi_rrt.reachedGoal(pi_rrt.path[-1]) is False:
-        print pi_rrt.path[-1].getState()
+        # if i == 1:
+        #     sys.exit()
         startTime = time.time()    
         print 'COUNT '+ str(i)
         if pi_rrt.runRRT():
-            if pi_rrt.generateTrajectories2():
+            # if i == 1:
+            #     pi_rrt.plottingInterval = 'notend'
+            if pi_rrt.generateTrajectories3():
                 pi_rrt.executeControl2(*pi_rrt.computeVariation2())
                 print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
                 pirrtTimes.append(time.time()-startTime)
