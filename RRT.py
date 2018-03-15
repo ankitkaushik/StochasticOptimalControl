@@ -241,8 +241,9 @@ class RRT(object):
         xDistance = trackVertex.x - currentVertex.x
         yDistance = trackVertex.y - currentVertex.y
         L = np.sqrt(xDistance ** 2 + yDistance ** 2)
-        alpha1 = atan2(yDistance, xDistance)
-        return alpha1
+        alpha = atan2(yDistance, xDistance)-currentVertex.theta
+        omega = 2*self.velocity*sin(alpha)/L
+        return omega
 
     def steerControlled(self, vNearest, vNearestIndex, vRand):
         numSteps = 10
@@ -278,7 +279,7 @@ class RRT(object):
             newVertices[i, 2] = newVertices[i - 1, 2] + dtheta
             newVertices[i, 3] = newVertices[i - 1, 3] + self.dt
             # newVertices[i, 4] = dtheta * self.r / self.dt
-            newVertices[i, 4] = dtheta * self.r
+            newVertices[i, 4] = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1]))
             if self.lastSteerOnly is False:
                 newVertices[i, 5] = newVertexIndex + i - 1
             else:
