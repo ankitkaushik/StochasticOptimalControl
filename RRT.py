@@ -38,7 +38,7 @@ class RRT(object):
         print 'rrt initialized with ' + str(self.vInit.getState())
         self.plotStore = plotStore
         self.plottingInterval = plottingInterval
-        self.lastSteerOnly = True
+        self.lastSteerOnly = False
 
     
     def createObstacles(self):
@@ -249,20 +249,18 @@ class RRT(object):
         numSteps = 10
         startTime = time.time()
         newVertices = np.zeros((numSteps + 1, 10))
-        if hasattr(self, 'controlSpline'):
-            dtheta = self.controlSpline(vNearest.time + self.dt) / self.r
+        # if hasattr(self, 'controlSpline'):
+        #     dtheta = self.controlSpline(vNearest.time + self.dt) / self.r
             # dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
-            print 'using control spline!'
-        else:
-            dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
-            print 'using pure pursuit!'
+        #     print 'using control spline!'
+        # else:
+        dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
         dtheta += self.generateNoise()
         dx = self.velocity * cos(vNearest.theta)
         dy = self.velocity * sin(vNearest.theta)
         newVertices[0, 0:2] = np.array([vNearest.x, vNearest.y]) + self.dt * np.array([dx, dy])
         newVertices[(0, 2)] = vNearest.theta + dtheta
         newVertices[(0, 3)] = vNearest.time + self.dt
-        # newVertices[(0, 4)] = dtheta * self.r / self.dt
         newVertices[(0, 4)] = dtheta * self.r
         newVertices[(0, 5)] = vNearestIndex
         newVertexIndex = len(self.vertices)
@@ -270,15 +268,14 @@ class RRT(object):
             dx = self.velocity * cos(newVertices[i - 1, 2])
             dy = self.velocity * sin(newVertices[i - 1, 2])
             newVertices[i, 0:2] = newVertices[i - 1, 0:2] + self.dt * np.array([dx, dy])
-            if hasattr(self, 'controlSpline'):
-                dtheta = self.controlSpline(newVertices[i - 1, 3] + self.dt) / self.r
+            # if hasattr(self, 'controlSpline'):
+                # dtheta = self.controlSpline(newVertices[i - 1, 3] + self.dt) / self.r
                 # dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
-            else:
-                dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
+            # else:
+            dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
             dtheta += self.generateNoise()
             newVertices[i, 2] = newVertices[i - 1, 2] + dtheta
             newVertices[i, 3] = newVertices[i - 1, 3] + self.dt
-            # newVertices[i, 4] = dtheta * self.r / self.dt
             newVertices[i, 4] = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1]))
             if self.lastSteerOnly is False:
                 newVertices[i, 5] = newVertexIndex + i - 1

@@ -125,7 +125,7 @@ plottingInterval='notend'
 
 # Create directory to save files
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_with_noise_numTries5/'
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/March12_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering_generateTrajectories3/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/March19_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering_generateTrajectories2/'
 # saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_RRT_controlledSteering/'
 print saveDir
 # sys.exit()
@@ -169,7 +169,8 @@ if runType == 'pirrt':
         if pi_rrt.runRRT():
             # if i == 1:
             #     pi_rrt.plottingInterval = 'notend'
-            if pi_rrt.generateTrajectories3():
+            # if pi_rrt.generateTrajectories3():
+            if pi_rrt.generateTrajectories2():
                 pi_rrt.executeControl2(*pi_rrt.computeVariation2())
                 print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
                 pirrtTimes.append(time.time()-startTime)

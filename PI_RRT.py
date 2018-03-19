@@ -112,7 +112,7 @@ class PI_RRT(object):
                 newRRT = RRTStar(self.RRT.vInit, self.RRT.vGoal, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.plotStore)
             else:
                 newRRT = RRT(self.RRT.vInit, self.RRT.vGoal, self.searchSpace, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore, self.obstacleType, self.plottingInterval)
-                newRRT.assignControlSpline(self.controlSplineRRT)
+                # newRRT.assignControlSpline(self.controlSplineRRT)
             if newRRT.extractPath():
                 print 'RRT path extracted'
                 self.trajectories.append(newRRT.pathReversed)
@@ -282,8 +282,8 @@ class PI_RRT(object):
         U = np.zeros(min(trajectoryLengths))
         t = np.zeros(min(trajectoryLengths))
         for i in range(min(trajectoryLengths)):
-            U[i] = self.controlSplineRRT(self.dt * i) + dU[i]
-            t[i] = self.dt * i
+            t[i] = trajectoryStates[minTrajectoryIndex,i,3]
+            U[i] = self.controlSplineRRT(t[i]) + dU[i] 
 
         return (t, U)
 
@@ -342,17 +342,11 @@ class PI_RRT(object):
         self.newPathVertices = [self.path[-1]]
         for i in range(int(self.tHorizon / self.controlDiscretation)):
             dx = self.velocity * cos(self.newPathVertices[-1].theta)
-            print 'dx: ' + str(dx)
             dy = self.velocity * sin(self.newPathVertices[-1].theta)
-            print 'dy: ' + str(dy)
-            dtheta = self.controlSplinePathIntegral(self.controlDiscretation * i) / self.r
+            dtheta = self.controlSplinePathIntegral(self.path[-1].time + self.controlDiscretation * i) / self.r
             dtheta += self.RRT.generateNoise()
-            print 'dtheta: ' + str(dtheta)
             newVertex = Vertex(self.newPathVertices[-1].x + self.controlDiscretation * dx, self.newPathVertices[-1].y + self.controlDiscretation * dy, self.newPathVertices[-1].theta + dtheta, self.newPathVertices[-1].time + self.controlDiscretation * i, dtheta)
             if self.RRT.obstacleFree(newVertex, self.newPathVertices[-1]) == True:
-                print 'self.newPathVertices[-1].theta: ' + str(self.newPathVertices[-1].theta)
-                print 'self.newPathVertices[-1].theta+dtheta: ' + str(self.newPathVertices[-1].theta + dtheta)
-                print newVertex.getState()
                 self.newPathVertices.append(newVertex)
             else:
                 self.newPathVertices = []
