@@ -254,16 +254,15 @@ class RRT(object):
     def steerControlled(self, vNearest, vNearestIndex, vRand):
         numSteps = 10
         startTime = time.time()
-        print 'vNearest.time: ' + str(vNearest.time)
-        print 'vNearestIndex: ' + str(vNearestIndex)
+        # print 'vNearest.time: ' + str(vNearest.time)
+        # print 'vNearestIndex: ' + str(vNearestIndex)
         newVertices = np.zeros((numSteps + 1, 10))
-        # if hasattr(self, 'controlSpline'):
-        #     dtheta = self.controlSpline(vNearest.time + self.dt) / self.r
-            # dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
-        #     print 'using control spline!'
-        # else:
-        dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
-        dtheta += self.generateNoise()
+        if hasattr(self, 'controlSpline'):
+            dtheta = self.controlSpline(vNearest.time + self.dt) / self.r
+            dtheta += self.generateNoise()
+        else:
+            dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
+            dtheta += self.generateNoise()
         dx = self.velocity * cos(vNearest.theta)
         dy = self.velocity * sin(vNearest.theta)
         newVertices[0, 0:2] = np.array([vNearest.x, vNearest.y]) + self.dt * np.array([dx, dy])
@@ -271,25 +270,25 @@ class RRT(object):
         newVertices[0, 3] = vNearest.time + self.dt
         newVertices[0, 4] = dtheta * self.r
         newVertices[0, 5] = vNearestIndex
-        print 'newVertices[0,0:6]: ' + str(newVertices[0,0:6])        
+        # print 'newVertices[0,0:6]: ' + str(newVertices[0,0:6])        
         newVertexIndex = len(self.vertices)
         for i in range(1, numSteps + 1):
             dx = self.velocity * cos(newVertices[i - 1, 2])
             dy = self.velocity * sin(newVertices[i - 1, 2])
             newVertices[i, 0:2] = newVertices[i - 1, 0:2] + self.dt * np.array([dx, dy])
-            # if hasattr(self, 'controlSpline'):
-                # dtheta = self.controlSpline(newVertices[i - 1, 3] + self.dt) / self.r
-                # dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
-            # else:
-            dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
-            print 'dtheta: ' + str(dtheta)
-            dtheta += self.generateNoise()
-            print 'dtheta: ' + str(dtheta)
+            if hasattr(self, 'controlSpline'):
+                dtheta = self.controlSpline(newVertices[i - 1, 3] + self.dt) / self.r
+                dtheta += self.generateNoise()
+            else:
+                dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
+                # print 'dtheta: ' + str(dtheta)
+                dtheta += self.generateNoise()
+                # print 'dtheta: ' + str(dtheta)
             newVertices[i, 2] = newVertices[i - 1, 2] + dtheta
             newVertices[i, 3] = newVertices[i - 1, 3] + self.dt
             # newVertices[i, 4] = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1]))
             newVertices[i, 4] = dtheta*self.r
-            print 'newVertices[i, 4]: ' + str(newVertices[i, 4])
+            # print 'newVertices[i, 4]: ' + str(newVertices[i, 4])
             newVertices[i, 5] = newVertexIndex + i - 1
             # print 'newVertices[i,0:6]: ' + str(newVertices[i,0:6])
 
@@ -329,12 +328,10 @@ class RRT(object):
         return True
 
     def obstacleFreeVertices(self, newVertices):
-        obstacleFreeVertices = True
-        for v in newVertices:
-            if self.onObstacle(Vertex(*v)) == True:
-                obstacleFreeVertices = False
-
-        return obstacleFreeVertices
+        obstacleFree = []
+        for i in range(1,len(newVertices)):
+            obstacleFree.append(self.obstacleFree(Vertex(*newVertices[i]), Vertex(*newVertices[i-1])))
+        return np.all(obstacleFree) 
 
     def plotPath(self, path):
         plt.plot([ v.x for v in path ], [ v.y for v in path ], '-b', linewidth=7.0)

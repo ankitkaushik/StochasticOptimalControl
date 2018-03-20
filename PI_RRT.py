@@ -112,7 +112,7 @@ class PI_RRT(object):
                 newRRT = RRTStar(self.RRT.vInit, self.RRT.vGoal, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.plotStore)
             else:
                 newRRT = RRT(self.RRT.vInit, self.RRT.vGoal, self.searchSpace, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore, self.obstacleType, self.plottingInterval)
-                # newRRT.assignControlSpline(self.controlSplineRRT)
+                newRRT.assignControlSpline(self.controlSplineRRT)
             if newRRT.extractPath():
                 print 'RRT path extracted'
                 self.trajectories.append(newRRT.pathReversed)
