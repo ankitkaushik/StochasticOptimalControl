@@ -38,8 +38,7 @@ class RRT(object):
         print 'rrt initialized with ' + str(self.vInit.getState())
         self.plotStore = plotStore
         self.plottingInterval = plottingInterval
-        self.lastSteerOnly = False
-
+        self.lastSteerOnly = True
     
     def createObstacles(self):
         self.obstacles = []
@@ -67,8 +66,7 @@ class RRT(object):
         if path == False:
             vNearest = self.vertices[0]
             vNearestIndex = 0
-            # for i, v in enumerate(self.verticesSteered):
-            for i, v in enumerate(self.vertices):
+            for i, v in enumerate(self.verticesSteered):
                 if self.getDistance(v, vRand) < self.getDistance(vNearest, vRand):
                     vNearest = v
                     vNearestIndex = i
@@ -81,7 +79,6 @@ class RRT(object):
                 if self.getDistance(v, vRand) < self.getDistance(vNearest, vRand):
                     vNearest = v
                     vNearestIndex = i
-
             return (vNearest, vNearestIndex)
 
     def sample(self):
@@ -119,11 +116,14 @@ class RRT(object):
                         if self.lastSteerOnly is False:
                             for i in range(newVertices.shape[0]):
                                 self.vertices.append(Vertex(*newVertices[i]))
+                                self.verticesSteered.append(Vertex(*newVertices[i]))
                                 # if self.plotStore is not None:
                                 #     self.plotStore.allRRTVertices.append(Vertex(*newVertices[i]))
                         else:
-                            self.vertices.append(Vertex(*newVertices[0]))
-                            self.vertices.append(Vertex(*newVertices[-1]))
+                            for i in range(newVertices.shape[0]):
+                                self.vertices.append(Vertex(*newVertices[i]))
+                            # self.verticesSteered.append(Vertex(*newVertices[0]))
+                            self.verticesSteered.append(Vertex(*newVertices[-1]))
 
                     if self.plotStore is not None:
                         if self.plottingInterval != 'end':
@@ -168,7 +168,7 @@ class RRT(object):
             self.path.append(lastVertex)
             j = -1
             while self.vertices[j].parent is not 0:
-            	print self.vertices[int(self.vertices[j].parent)].time
+                print self.vertices[int(self.vertices[j].parent)].time
                 self.path.append(self.vertices[int(self.vertices[j].parent)])
                 j = self.vertices[j].parent
             self.path.append(self.vInit)
@@ -277,10 +277,7 @@ class RRT(object):
             newVertices[i, 2] = newVertices[i - 1, 2] + dtheta
             newVertices[i, 3] = newVertices[i - 1, 3] + self.dt
             newVertices[i, 4] = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1]))
-            if self.lastSteerOnly is False:
-                newVertices[i, 5] = newVertexIndex + i - 1
-            else:
-                newVertices[i, 5] = vNearestIndex
+            newVertices[i, 5] = newVertexIndex + i - 1
 
         return newVertices
 
