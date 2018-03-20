@@ -62,24 +62,25 @@ class RRT(object):
     def getDistance(self, v1, v2):
         return sqrt((v1.x - v2.x) ** 2 + (v1.y - v2.y) ** 2)
 
-    def getNN(self, vRand, path = False):
-        if path == False:
-            vNearest = self.vertices[0]
-            vNearestIndex = 0
-            for i, v in enumerate(self.verticesSteered):
-                if self.getDistance(v, vRand) < self.getDistance(vNearest, vRand):
-                    vNearest = v
-                    vNearestIndex = i
-            return (vNearest, vNearestIndex)
+    def getNN(self, vRand):
+        
+        vNearest = self.vertices[0]
+        vNearestIndex = 0
+        xVertices = [v.x for v in self.vertices]
+        for i, v in enumerate(self.verticesSteered):
+            if self.getDistance(v, vRand) < self.getDistance(vNearest, vRand):
+                vNearest = v
+                vNearestIndex = xVertices.index(v.x)
+        return (vNearest, vNearestIndex)
 
-        if path == True:
-            vNearest = self.path[0]
-            vNearestIndex = 0
-            for i, v in enumerate(self.path):
-                if self.getDistance(v, vRand) < self.getDistance(vNearest, vRand):
-                    vNearest = v
-                    vNearestIndex = i
-            return (vNearest, vNearestIndex)
+        # if path == True:
+        #     vNearest = self.path[0]
+        #     vNearestIndex = 0
+        #     for i, v in enumerate(self.path):
+        #         if self.getDistance(v, vRand) < self.getDistance(vNearest, vRand):
+        #             vNearest = v
+        #             vNearestIndex = i
+        #     return (vNearest, vNearestIndex)
 
     def sample(self):
         vRand = deepcopy(self.vGoal)
@@ -120,10 +121,15 @@ class RRT(object):
                                 # if self.plotStore is not None:
                                 #     self.plotStore.allRRTVertices.append(Vertex(*newVertices[i]))
                         else:
+                            print 'len(self.vertices): ' + str(len(self.vertices))
+                            print 'len(self.verticesSteered): ' + str(len(self.verticesSteered))
                             for i in range(newVertices.shape[0]):
                                 self.vertices.append(Vertex(*newVertices[i]))
                             # self.verticesSteered.append(Vertex(*newVertices[0]))
+                            # print 'newVertices[-1]: ' + str(newVertices[-1])
                             self.verticesSteered.append(Vertex(*newVertices[-1]))
+                            print 'len(self.vertices): ' + str(len(self.vertices))
+                            print 'len(self.verticesSteered): ' + str(len(self.verticesSteered))
 
                     if self.plotStore is not None:
                         if self.plottingInterval != 'end':
@@ -168,7 +174,7 @@ class RRT(object):
             self.path.append(lastVertex)
             j = -1
             while self.vertices[j].parent is not 0:
-                print self.vertices[int(self.vertices[j].parent)].time
+                print self.vertices[int(self.vertices[j].parent)].getState()
                 self.path.append(self.vertices[int(self.vertices[j].parent)])
                 j = self.vertices[j].parent
             self.path.append(self.vInit)
@@ -248,6 +254,8 @@ class RRT(object):
     def steerControlled(self, vNearest, vNearestIndex, vRand):
         numSteps = 10
         startTime = time.time()
+        print 'vNearest.time: ' + str(vNearest.time)
+        print 'vNearestIndex: ' + str(vNearestIndex)
         newVertices = np.zeros((numSteps + 1, 10))
         # if hasattr(self, 'controlSpline'):
         #     dtheta = self.controlSpline(vNearest.time + self.dt) / self.r
@@ -259,10 +267,11 @@ class RRT(object):
         dx = self.velocity * cos(vNearest.theta)
         dy = self.velocity * sin(vNearest.theta)
         newVertices[0, 0:2] = np.array([vNearest.x, vNearest.y]) + self.dt * np.array([dx, dy])
-        newVertices[(0, 2)] = vNearest.theta + dtheta
-        newVertices[(0, 3)] = vNearest.time + self.dt
-        newVertices[(0, 4)] = dtheta * self.r
-        newVertices[(0, 5)] = vNearestIndex
+        newVertices[0, 2] = vNearest.theta + dtheta        
+        newVertices[0, 3] = vNearest.time + self.dt
+        newVertices[0, 4] = dtheta * self.r
+        newVertices[0, 5] = vNearestIndex
+        print 'newVertices[0,0:6]: ' + str(newVertices[0,0:6])        
         newVertexIndex = len(self.vertices)
         for i in range(1, numSteps + 1):
             dx = self.velocity * cos(newVertices[i - 1, 2])
@@ -273,11 +282,16 @@ class RRT(object):
                 # dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
             # else:
             dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
+            print 'dtheta: ' + str(dtheta)
             dtheta += self.generateNoise()
+            print 'dtheta: ' + str(dtheta)
             newVertices[i, 2] = newVertices[i - 1, 2] + dtheta
             newVertices[i, 3] = newVertices[i - 1, 3] + self.dt
-            newVertices[i, 4] = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1]))
+            # newVertices[i, 4] = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1]))
+            newVertices[i, 4] = dtheta*self.r
+            print 'newVertices[i, 4]: ' + str(newVertices[i, 4])
             newVertices[i, 5] = newVertexIndex + i - 1
+            # print 'newVertices[i,0:6]: ' + str(newVertices[i,0:6])
 
         return newVertices
 

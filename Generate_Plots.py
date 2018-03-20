@@ -124,11 +124,7 @@ controlledSteering = True
 plottingInterval='notend'
 
 # Create directory to save files
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_with_noise_numTries5/'
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/March19_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering_generateTrajectories2/'
-# saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/FINAL_RRT_controlledSteering/'
-print saveDir
-# sys.exit()
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/March20_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering_generateTrajectories2/'
 try:
     os.makedirs(saveDir)
 except OSError as e:
@@ -158,6 +154,7 @@ if runType == 'rrtloop':
 
 if runType == 'pirrt':
     pi_rrt = PI_RRT(vInit,vGoal,alpha,saveDir,useRRTStar,controlledSteering,obstacleType)
+    # pi_rrt.plottingInterval = 'notend'
     # pi_rrt.generateTrajectoriesMP()
     pirrtTimes = []
     i = 0
