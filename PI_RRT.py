@@ -257,7 +257,7 @@ class PI_RRT(object):
                 noiseCosts[i] += self.controlSplineRRT(trajectoryStates[k, i, 3]) * trajectoryStates[k, i, 4]
 
             totalCost = np.trapz(pathCosts[:-1], trajectoryStates[k, :len(trajectory) - 1, 3])
-            endStateDiff = trajectoryStates[k, -1, 0:3] - np.array(self.RRT.vGoal.getState()[0:3])
+            endStateDiff = trajectoryStates[k, len(trajectory)-1, 0:3] - np.array(self.RRT.vGoal.getState()[0:3])
             totalCost += endStateDiff.dot(self.Qf).dot(endStateDiff.T)
             totalCost += np.trapz(noiseCosts[:-1], trajectoryStates[k, :len(trajectory) - 1, 3])
             totalCosts[k] = totalCost / regCoef

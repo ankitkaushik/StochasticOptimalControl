@@ -124,7 +124,9 @@ controlledSteering = True
 plottingInterval='notend'
 
 # Create directory to save files
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/March20_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering_generateTrajectories2/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/March21_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering_generateTrajectories2/'
+print saveDir
+# sys.exit()
 try:
     os.makedirs(saveDir)
 except OSError as e:
