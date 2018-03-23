@@ -283,7 +283,8 @@ class PI_RRT(object):
         t = np.zeros(min(trajectoryLengths))
         for i in range(min(trajectoryLengths)):
             t[i] = trajectoryStates[minTrajectoryIndex,i,3]
-            U[i] = self.controlSplineRRT(t[i]) + dU[i] 
+            # U[i] = self.controlSplineRRT(t[i]) + dU[i]
+            U[i] = dU[i]  
 
         return (t, U)
 
