@@ -116,7 +116,7 @@ vGoal = Vertex(9.,0.,0.,10.,0.,0)
 alphas = [0.25,0.5,1.0]
 alpha = alphas[0]
 obstacleTypes = ['single', 'double']
-obstacleType = obstacleTypes[1]
+obstacleType = obstacleTypes[0]
 runTypes = ['rrt','rrtloop','pirrt']
 runType = runTypes[2]
 useRRTStar = False
@@ -124,7 +124,7 @@ controlledSteering = True
 plottingInterval='notend'
 
 # Create directory to save files
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/March23_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering_generateTrajectories2_dU_only/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/March29_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering_generateTrajectories2/'
 print saveDir
 # sys.exit()
 try:

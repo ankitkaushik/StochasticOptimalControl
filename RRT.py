@@ -278,17 +278,22 @@ class RRT(object):
             newVertices[i, 0:2] = newVertices[i - 1, 0:2] + self.dt * np.array([dx, dy])
             if hasattr(self, 'controlSpline'):
                 dtheta = self.controlSpline(newVertices[i - 1, 3] + self.dt) / self.r
-                # dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
-                dtheta += self.generateNoise()
+                # dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r                
+                # dtheta += self.generateNoise()
+                noise = self.generateNoise()
             else:
                 dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
                 # print 'dtheta: ' + str(dtheta)
-                dtheta += self.generateNoise()
+                # dtheta += self.generateNoise()
+                noise = self.generateNoise()
                 # print 'dtheta: ' + str(dtheta)
-            newVertices[i, 2] = newVertices[i - 1, 2] + dtheta
+            newVertices[i, 2] = newVertices[i - 1, 2] + dtheta + noise
             newVertices[i, 3] = newVertices[i - 1, 3] + self.dt
             # newVertices[i, 4] = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1]))
-            newVertices[i, 4] = dtheta*self.r
+            if hasattr(self, 'controlSpline'):
+                newVertices[i, 4] = noise*self.r
+            else:
+                newVertices[i, 4] = dtheta*self.r
             # print 'newVertices[i, 4]: ' + str(newVertices[i, 4])
             newVertices[i, 5] = newVertexIndex + i - 1
             # print 'newVertices[i,0:6]: ' + str(newVertices[i,0:6])
