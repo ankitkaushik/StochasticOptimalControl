@@ -333,11 +333,16 @@ class RRT(object):
 
         return True
 
-    def obstacleFreeVertices(self, newVertices):
+    def obstacleFreeVertices(self, newVertices,vertex=False):
         obstacleFree = []
-        for i in range(1,len(newVertices)):
-            obstacleFree.append(self.obstacleFree(Vertex(*newVertices[i]), Vertex(*newVertices[i-1])))
-        return np.all(obstacleFree) 
+        if vertex == False:
+            for i in range(1,len(newVertices)):
+                obstacleFree.append(self.obstacleFree(Vertex(*newVertices[i]), Vertex(*newVertices[i-1])))
+            return np.all(obstacleFree)
+        elif vertex == True:
+            for i in range(1,len(newVertices)):
+                obstacleFree.append(self.obstacleFree(newVertices[i], newVertices[i-1]))
+            return np.all(obstacleFree)
 
     def plotPath(self, path):
         plt.plot([ v.x for v in path ], [ v.y for v in path ], '-b', linewidth=7.0)
