@@ -124,7 +124,7 @@ controlledSteering = True
 plottingInterval='notend'
 
 # Create directory to save files
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/March29_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering_generateTrajectories2/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/April7_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering_generateTrajectories2/'
 print saveDir
 # sys.exit()
 try:

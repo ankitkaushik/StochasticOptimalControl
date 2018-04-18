@@ -21,7 +21,7 @@ class RRT(object):
     def __init__(self, vInit, vGoal, searchSpace, dt, velocity, wheelBase, steeringRatio, alpha, r, controlledSteering, plotStore, obstacleType, plottingInterval):
         self.vInit = vInit
         self.vGoal = vGoal
-        self.goalDist = 1
+        self.goalDist = 0.5
         self.vertices = [vInit]
         self.verticesSteered = [vInit]        
         self.searchSpace = searchSpace

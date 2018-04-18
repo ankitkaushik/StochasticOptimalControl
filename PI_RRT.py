@@ -17,7 +17,7 @@ class PI_RRT(object):
         self.vInit = vInit
         self.vGoal = vGoal
         self.searchSpace = [min(vInit.x, vInit.y), max(vGoal.x, vGoal.y)]
-        self.goalDist = 1
+        self.goalDist = 1.5
         self.path = [vInit]
         self.alpha = alpha
         self.r = 4.0
