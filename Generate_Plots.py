@@ -114,17 +114,17 @@ def plotObstacles(RRT):
 vInit = Vertex(-9.,0.,0.,0.,0.,0)
 vGoal = Vertex(9.,0.,0.,10.,0.,0)
 alphas = [0.25,0.5,1.0]
-alpha = alphas[0]
+alpha = alphas[2]
 obstacleTypes = ['single', 'double']
-obstacleType = obstacleTypes[0]
+obstacleType = obstacleTypes[1]
 runTypes = ['rrt','rrtloop','pirrt']
 runType = runTypes[2]
-useRRTStar = False
+useRRTStar = True
 controlledSteering = True
 plottingInterval='notend'
 
 # Create directory to save files
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/April7_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering_generateTrajectories2/'
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/April23_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering_generateTrajectories2/'
 print saveDir
 # sys.exit()
 try:

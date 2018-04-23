@@ -39,6 +39,9 @@ class RRT(object):
         self.plotStore = plotStore
         self.plottingInterval = plottingInterval
         self.lastSteerOnly = True
+
+    def assignControlSpline(self, controlSpline):
+        self.controlSpline = controlSpline
     
     def createObstacles(self):
         self.obstacles = []
@@ -48,49 +51,15 @@ class RRT(object):
         elif self.obstacleType == 'double':
             self.obstacles.append(Obstacle(center=[-2, 0.0], size=[3.5, 1.2]))
             self.obstacles.append(Obstacle(center=[-2, 1.75], size=[3.5, 1.5]))
-            self.obstacles.append(Obstacle(center=[-2, -1.75], size=[3.5, 1.5]))
+            self.obstacles.append(Obstacle(center=[-2, -1.75], size=[3.5, 1.5])) 
 
-    def assignControlSpline(self, controlSpline):
-        self.controlSpline = controlSpline
-
-    def reachedGoal(self, v):
-        if sqrt((v.x - self.vGoal.x) ** 2 + (v.y - self.vGoal.y) ** 2) <= self.goalDist:
-            return True
-        else:
-            return False
-
-    def getDistance(self, v1, v2):
-        return sqrt((v1.x - v2.x) ** 2 + (v1.y - v2.y) ** 2)
-
-    def getNN(self, vRand):
-        
-        vNearest = self.vertices[0]
-        vNearestIndex = 0
-        xVertices = [v.x for v in self.vertices]
-        for i, v in enumerate(self.verticesSteered):
-            if self.getDistance(v, vRand) < self.getDistance(vNearest, vRand):
-                vNearest = v
-                vNearestIndex = xVertices.index(v.x)
-        return (vNearest, vNearestIndex)
-
-        # if path == True:
-        #     vNearest = self.path[0]
-        #     vNearestIndex = 0
-        #     for i, v in enumerate(self.path):
-        #         if self.getDistance(v, vRand) < self.getDistance(vNearest, vRand):
-        #             vNearest = v
-        #             vNearestIndex = i
-        #     return (vNearest, vNearestIndex)
-
-    def sample(self):
-        vRand = deepcopy(self.vGoal)
-        while (vRand.x == self.vGoal.x) is True and (vRand.y == self.vGoal.y) is True:
-            vRand.x = np.random.uniform(self.searchSpace[0], self.searchSpace[1])
-            vRand.y = np.random.uniform(self.searchSpace[0], self.searchSpace[1])
-            if self.onObstacle(vRand) == True:
-                vRand.x = self.vGoal.x
-                vRand.y = self.vGoal.y
-        return vRand
+    def computeSteeringAngle(self, trackVertex, currentVertex):
+        xDistance = trackVertex.x - currentVertex.x
+        yDistance = trackVertex.y - currentVertex.y
+        L = np.sqrt(xDistance ** 2 + yDistance ** 2)
+        alpha = atan2(yDistance, xDistance)-currentVertex.theta
+        omega = 2*self.velocity*sin(alpha)/L
+        return omega
 
     def extend(self, stopCount = 1000):
         obstacleFreeVertices = False
@@ -193,112 +162,25 @@ class RRT(object):
                 print 'RRT iteration count is: ' + str(self.iterationCount)
                 self.iterationCount += 1
 
-            return successFlag    
+            return successFlag   
 
     def generateNoise(self):
         dW_1 = self.alpha / self.r * np.random.normal(0.0, np.sqrt(self.dt))
         dW_2 = self.alpha / self.r * np.random.normal() / np.sqrt(self.dt)
-        return dW_1
+        return dW_1 
 
-    def steerUncontrolled(self, vNearest, vNearestIndex, vRand):
-        numSteps = 10
-        numTries = 5
-        minDist = float('inf')
-        startTime = time.time()
-        newVertices = np.zeros((numTries, numSteps + 1, 6))
-        tryIndex = 0
-        for n in range(numTries):
-            dx = self.velocity * cos(vNearest.theta)
-            dy = self.velocity * sin(vNearest.theta)
-            if hasattr(self, 'controlSpline'):
-                dtheta = self.controlSpline(0.0) / self.r
-                dtheta += self.generateNoise()
-            else:
-                dtheta = self.generateNoise()
-            newVertices[n, 0, 0:2] = np.array([vNearest.x, vNearest.y]) + self.dt * np.array([dx, dy])
-            newVertices[n, 0, 2] = vNearest.theta + dtheta
-            newVertices[n, 0, 3] = vNearest.time + self.dt
-            newVertices[n, 0, 4] = dtheta * self.r
-            newVertices[n, 0, 5] = vNearestIndex
-            newVertexIndex = len(self.vertices)
-            for i in range(1, numSteps + 1):
-                dx = self.velocity * cos(newVertices[n, i - 1, 2])
-                dy = self.velocity * sin(newVertices[n, i - 1, 2])
-                if hasattr(self, 'controlSpline'):
-                    dtheta = self.controlSpline(self.dt * i) / self.r
-                    dtheta += self.generateNoise()
-                else:
-                    dtheta = self.generateNoise()
-                # print 'dtheta: ' + str(dtheta)
-                # print 'newVertices[n,i-1,2] + dtheta: ' + str(newVertices[n, i - 1, 2] + dtheta)
-                newVertices[n, i, 0:2] = newVertices[n, i - 1, 0:2] + self.dt * np.array([dx, dy])
-                newVertices[n, i, 2] = newVertices[n, i - 1, 2] + dtheta
-                newVertices[n, i, 3] = vNearest.time + i * self.dt
-                newVertices[n, i, 4] = dtheta * self.r
-                newVertices[n, i, 5] = newVertexIndex + i - 1
+    def getDistance(self, v1, v2):
+        return sqrt((v1.x - v2.x) ** 2 + (v1.y - v2.y) ** 2)
 
-            dist = sqrt((newVertices[n, -1, 0] - vRand.x) ** 2 + (newVertices[n, -1, 1] - vRand.y) ** 2)
-            if dist < minDist:
-                tryIndex = n
-
-        return newVertices[tryIndex, :, :]
-
-    def computeSteeringAngle(self, trackVertex, currentVertex):
-        xDistance = trackVertex.x - currentVertex.x
-        yDistance = trackVertex.y - currentVertex.y
-        L = np.sqrt(xDistance ** 2 + yDistance ** 2)
-        alpha = atan2(yDistance, xDistance)-currentVertex.theta
-        omega = 2*self.velocity*sin(alpha)/L
-        return omega
-
-    def steerControlled(self, vNearest, vNearestIndex, vRand):
-        numSteps = 10
-        startTime = time.time()
-        # print 'vNearest.time: ' + str(vNearest.time)
-        # print 'vNearestIndex: ' + str(vNearestIndex)
-        newVertices = np.zeros((numSteps + 1, 10))
-        if hasattr(self, 'controlSpline'):
-            dtheta = self.controlSpline(vNearest.time + self.dt) / self.r
-            dtheta += self.generateNoise()
-        else:
-            dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
-            dtheta += self.generateNoise()
-        dx = self.velocity * cos(vNearest.theta)
-        dy = self.velocity * sin(vNearest.theta)
-        newVertices[0, 0:2] = np.array([vNearest.x, vNearest.y]) + self.dt * np.array([dx, dy])
-        newVertices[0, 2] = vNearest.theta + dtheta        
-        newVertices[0, 3] = vNearest.time + self.dt
-        newVertices[0, 4] = dtheta * self.r
-        newVertices[0, 5] = vNearestIndex
-        # print 'newVertices[0,0:6]: ' + str(newVertices[0,0:6])        
-        newVertexIndex = len(self.vertices)
-        for i in range(1, numSteps + 1):
-            dx = self.velocity * cos(newVertices[i - 1, 2])
-            dy = self.velocity * sin(newVertices[i - 1, 2])
-            newVertices[i, 0:2] = newVertices[i - 1, 0:2] + self.dt * np.array([dx, dy])
-            if hasattr(self, 'controlSpline'):
-                dtheta = self.controlSpline(newVertices[i - 1, 3] + self.dt) / self.r
-                # dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r                
-                # dtheta += self.generateNoise()
-                noise = self.generateNoise()
-            else:
-                dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
-                # print 'dtheta: ' + str(dtheta)
-                # dtheta += self.generateNoise()
-                noise = self.generateNoise()
-                # print 'dtheta: ' + str(dtheta)
-            newVertices[i, 2] = newVertices[i - 1, 2] + dtheta + noise
-            newVertices[i, 3] = newVertices[i - 1, 3] + self.dt
-            # newVertices[i, 4] = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1]))
-            if hasattr(self, 'controlSpline'):
-                newVertices[i, 4] = noise*self.r
-            else:
-                newVertices[i, 4] = dtheta*self.r
-            # print 'newVertices[i, 4]: ' + str(newVertices[i, 4])
-            newVertices[i, 5] = newVertexIndex + i - 1
-            # print 'newVertices[i,0:6]: ' + str(newVertices[i,0:6])
-
-        return newVertices
+    def getNN(self, vRand):        
+        vNearest = self.vertices[0]
+        vNearestIndex = 0
+        xVertices = [v.x for v in self.vertices]
+        for i, v in enumerate(self.verticesSteered):
+            if self.getDistance(v, vRand) < self.getDistance(vNearest, vRand):
+                vNearest = v
+                vNearestIndex = xVertices.index(v.x)
+        return (vNearest, vNearestIndex)   
 
     def onObstacle(self, v):
         onObstacle = False
@@ -396,6 +278,12 @@ class RRT(object):
         plt.savefig(self.plotStore.plotSaveDir + 'RRT_alpha_' + str(self.alpha) + '_obstacle_' + self.obstacleType + '_' + str(self.plotStore.plotIndex) + '.png')
         self.plotStore.plotIndex += 1
 
+    def reachedGoal(self, v):
+        if sqrt((v.x - self.vGoal.x) ** 2 + (v.y - self.vGoal.y) ** 2) <= self.goalDist:
+            return True
+        else:
+            return False   
+
     def returnPlot(self, ax, n):
         for obstacle in self.obstacles:
             x = []
@@ -459,4 +347,106 @@ class RRT(object):
              'Vertices',
              'Sampled Points',
              'Some3'], loc=3)
-        return ax
+        return ax 
+
+    def sample(self):
+        vRand = deepcopy(self.vGoal)
+        while (vRand.x == self.vGoal.x) is True and (vRand.y == self.vGoal.y) is True:
+            vRand.x = np.random.uniform(self.searchSpace[0], self.searchSpace[1])
+            vRand.y = np.random.uniform(self.searchSpace[0], self.searchSpace[1])
+            if self.onObstacle(vRand) == True:
+                vRand.x = self.vGoal.x
+                vRand.y = self.vGoal.y
+        return vRand 
+
+    def steerControlled(self, vNearest, vNearestIndex, vRand):
+        numSteps = 10
+        startTime = time.time()
+        # print 'vNearest.time: ' + str(vNearest.time)
+        # print 'vNearestIndex: ' + str(vNearestIndex)
+        newVertices = np.zeros((numSteps + 1, 10))
+        if hasattr(self, 'controlSpline'):
+            dtheta = self.controlSpline(vNearest.time + self.dt) / self.r
+            dtheta += self.generateNoise()
+        else:
+            dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
+            dtheta += self.generateNoise()
+        dx = self.velocity * cos(vNearest.theta)
+        dy = self.velocity * sin(vNearest.theta)
+        newVertices[0, 0:2] = np.array([vNearest.x, vNearest.y]) + self.dt * np.array([dx, dy])
+        newVertices[0, 2] = vNearest.theta + dtheta        
+        newVertices[0, 3] = vNearest.time + self.dt
+        newVertices[0, 4] = dtheta * self.r
+        newVertices[0, 5] = vNearestIndex
+        # print 'newVertices[0,0:6]: ' + str(newVertices[0,0:6])        
+        newVertexIndex = len(self.vertices)
+        for i in range(1, numSteps + 1):
+            dx = self.velocity * cos(newVertices[i - 1, 2])
+            dy = self.velocity * sin(newVertices[i - 1, 2])
+            newVertices[i, 0:2] = newVertices[i - 1, 0:2] + self.dt * np.array([dx, dy])
+            if hasattr(self, 'controlSpline'):
+                dtheta = self.controlSpline(newVertices[i - 1, 3] + self.dt) / self.r
+                # dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r                
+                # dtheta += self.generateNoise()
+                noise = self.generateNoise()
+            else:
+                dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
+                # print 'dtheta: ' + str(dtheta)
+                # dtheta += self.generateNoise()
+                noise = self.generateNoise()
+                # print 'dtheta: ' + str(dtheta)
+            newVertices[i, 2] = newVertices[i - 1, 2] + dtheta + noise
+            newVertices[i, 3] = newVertices[i - 1, 3] + self.dt
+            # newVertices[i, 4] = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1]))
+            if hasattr(self, 'controlSpline'):
+                newVertices[i, 4] = noise*self.r
+            else:
+                newVertices[i, 4] = dtheta*self.r
+            # print 'newVertices[i, 4]: ' + str(newVertices[i, 4])
+            newVertices[i, 5] = newVertexIndex + i - 1
+            # print 'newVertices[i,0:6]: ' + str(newVertices[i,0:6])
+
+        return newVertices   
+
+    def steerUncontrolled(self, vNearest, vNearestIndex, vRand):
+        numSteps = 10
+        numTries = 5
+        minDist = float('inf')
+        startTime = time.time()
+        newVertices = np.zeros((numTries, numSteps + 1, 6))
+        tryIndex = 0
+        for n in range(numTries):
+            dx = self.velocity * cos(vNearest.theta)
+            dy = self.velocity * sin(vNearest.theta)
+            if hasattr(self, 'controlSpline'):
+                dtheta = self.controlSpline(0.0) / self.r
+                dtheta += self.generateNoise()
+            else:
+                dtheta = self.generateNoise()
+            newVertices[n, 0, 0:2] = np.array([vNearest.x, vNearest.y]) + self.dt * np.array([dx, dy])
+            newVertices[n, 0, 2] = vNearest.theta + dtheta
+            newVertices[n, 0, 3] = vNearest.time + self.dt
+            newVertices[n, 0, 4] = dtheta * self.r
+            newVertices[n, 0, 5] = vNearestIndex
+            newVertexIndex = len(self.vertices)
+            for i in range(1, numSteps + 1):
+                dx = self.velocity * cos(newVertices[n, i - 1, 2])
+                dy = self.velocity * sin(newVertices[n, i - 1, 2])
+                if hasattr(self, 'controlSpline'):
+                    dtheta = self.controlSpline(self.dt * i) / self.r
+                    dtheta += self.generateNoise()
+                else:
+                    dtheta = self.generateNoise()
+                # print 'dtheta: ' + str(dtheta)
+                # print 'newVertices[n,i-1,2] + dtheta: ' + str(newVertices[n, i - 1, 2] + dtheta)
+                newVertices[n, i, 0:2] = newVertices[n, i - 1, 0:2] + self.dt * np.array([dx, dy])
+                newVertices[n, i, 2] = newVertices[n, i - 1, 2] + dtheta
+                newVertices[n, i, 3] = vNearest.time + i * self.dt
+                newVertices[n, i, 4] = dtheta * self.r
+                newVertices[n, i, 5] = newVertexIndex + i - 1
+
+            dist = sqrt((newVertices[n, -1, 0] - vRand.x) ** 2 + (newVertices[n, -1, 1] - vRand.y) ** 2)
+            if dist < minDist:
+                tryIndex = n
+
+        return newVertices[tryIndex, :, :]

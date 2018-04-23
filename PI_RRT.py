@@ -53,7 +53,7 @@ class PI_RRT(object):
         successFlag = True
         print 'runRRT method called'
         if self.useRRTStar:
-            self.RRT = RRTStar(self.path[-1], self.vGoal, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.plotStore)
+            self.RRT = RRTStar(self.path[-1], self.vGoal, self.searchSpace, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore, self.obstacleType, self.plottingInterval)
         else:
             self.RRT = RRT(self.path[-1], self.vGoal, self.searchSpace, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore, self.obstacleType, self.plottingInterval)
         print 'RRT initialized'
@@ -109,7 +109,8 @@ class PI_RRT(object):
         for i in range(self.M):
             print 'doing rrt'
             if self.useRRTStar:
-                newRRT = RRTStar(self.RRT.vInit, self.RRT.vGoal, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.plotStore)
+                newRRT = RRTStar(self.RRT.vInit, self.RRT.vGoal, self.searchSpace, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore, self.obstacleType, self.plottingInterval)
+                newRRT.assignControlSpline(self.controlSplineRRT)
             else:
                 newRRT = RRT(self.RRT.vInit, self.RRT.vGoal, self.searchSpace, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore, self.obstacleType, self.plottingInterval)
                 newRRT.assignControlSpline(self.controlSplineRRT)
