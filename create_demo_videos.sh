@@ -1,0 +1,4 @@
+ffmpeg -y -framerate 5 -f image2 -start_number 0 -i TSIO_single_obstacle_alpha_1.0_controlledSteering/RRT_alpha_1.0_obstacle_single_%d.png -vcodec libx264 -crf 25 TSIO_single_obstacle_alpha_1.0_controlledSteering.mp4;
+ffmpeg -y -framerate 5 -f image2 -start_number 0 -i TSIO_single_obstacle_alpha_0.5_controlledSteering/RRT_alpha_0.5_obstacle_single_%d.png -vcodec libx264 -crf 25 TSIO_single_obstacle_alpha_0.5_controlledSteering.mp4;
+ffmpeg -y -framerate 5 -f image2 -start_number 0 -i TSIO_double_obstacle_alpha_0.5_controlledSteering/RRT_alpha_0.5_obstacle_double_%d.png -vcodec libx264 -crf 25 TSIO_double_obstacle_alpha_0.5_controlledSteering.mp4;
+ffmpeg -y -framerate 5 -f image2 -start_number 0 -i TSIO_double_obstacle_alpha_1.0_controlledSteering/RRT_alpha_1.0_obstacle_double_%d.png -vcodec libx264 -crf 25 TSIO_double_obstacle_alpha_1.0_controlledSteering.mp4;
