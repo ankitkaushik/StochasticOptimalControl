@@ -1,0 +1,18 @@
+alphas: [0.25,0.5,1.0]
+alpha: 0.0
+controlledSteering: True
+dt: 0.1
+goalDist: 0.5
+lastSteerOnly: True
+numStepsSteering: 10
+obstacleTypes: ['single', 'double']
+obstacleType: 'single'
+plottingInterval: 'end'
+r: 4.0
+runTypes: ['rrt','rrtloop','pirrt']
+runType: 'rrt'
+searchRadius: 5
+useRRTStar: True
+velocity: 2.3
+vInit: [-9.,0.,0.,0.,0.,0.]
+vGoal: [9.,0.,0.,10.,0.,0.]

@@ -18,27 +18,50 @@ pylab.rcParams.update(params)
 
 class RRT(object):
 
-    def __init__(self, vInit, vGoal, searchSpace, dt, velocity, wheelBase, steeringRatio, alpha, r, controlledSteering, plotStore, obstacleType, plottingInterval):
-        self.vInit = vInit
-        self.vGoal = vGoal
-        self.goalDist = 0.5
-        self.vertices = [vInit]
-        self.verticesSteered = [vInit]        
-        self.searchSpace = searchSpace
-        self.dt = dt
-        self.velocity = velocity
-        self.wheelBase = wheelBase
-        self.steeringRatio = steeringRatio
-        self.alpha = alpha
-        self.r = r
-        self.controlledSteering = controlledSteering
-        self.sampledPoints = []
-        self.obstacleType = obstacleType
-        self.createObstacles()
-        print 'rrt initialized with ' + str(self.vInit.getState())
+    # def __init__(self, vInit, vGoal, searchSpace, dt, velocity, wheelBase, steeringRatio, alpha, r, controlledSteering, plotStore, obstacleType, plottingInterval):
+    #     self.vInit = vInit
+    #     self.vGoal = vGoal
+    #     self.goalDist = 0.5
+    #     self.vertices = [vInit]
+    #     self.verticesSteered = [vInit]        
+    #     self.searchSpace = searchSpace
+    #     self.dt = dt
+    #     self.velocity = velocity
+    #     self.wheelBase = wheelBase
+    #     self.steeringRatio = steeringRatio
+    #     self.alpha = alpha
+    #     self.r = r
+    #     self.controlledSteering = controlledSteering
+    #     self.sampledPoints = []
+    #     self.obstacleType = obstacleType
+    #     self.createObstacles()
+    #     print 'rrt initialized with ' + str(self.vInit.getState())
+    #     self.plotStore = plotStore
+    #     self.plottingInterval = plottingInterval
+    #     self.lastSteerOnly = True
+
+    def __init__(self,variables,plotStore):
+
         self.plotStore = plotStore
-        self.plottingInterval = plottingInterval
-        self.lastSteerOnly = True
+
+        self.vInit = Vertex(*variables['vInit'])
+        self.vGoal = Vertex(*variables['vGoal'])
+        self.goalDist = variables['goalDist']        
+        self.dt = variables['dt']
+        self.velocity = variables['velocity']
+        self.alpha = variables['alpha']
+        self.r = variables['r']
+        self.controlledSteering = variables['controlledSteering']
+        self.obstacleType = variables['obstacleType']               
+        self.plottingInterval = variables['plottingInterval']
+        self.lastSteerOnly = variables['lastSteerOnly']
+
+        self.createObstacles() 
+        self.searchSpace = [min(self.vInit.x, self.vInit.y), max(self.vGoal.x, self.vGoal.y)]
+        self.vertices = [self.vInit]
+        self.verticesSteered = [self.vInit]
+        self.sampledPoints = []
+        print 'rrt initialized with ' + str(self.vInit.getState())
 
     def assignControlSpline(self, controlSpline):
         self.controlSpline = controlSpline

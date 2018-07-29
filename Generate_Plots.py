@@ -1,6 +1,7 @@
 import os, errno
+import yaml
 import sys
-import time
+import time, datetime
 from copy import deepcopy
 import cPickle, dill
 from subprocess import call
@@ -26,107 +27,13 @@ from RRTStar import RRTStar
 from PI_RRT import PI_RRT
 from plotStore import plotStore
 
-def plotPath(path):
-    plt.plot([v.x for v in path], [v.y for v in path], '-b')
-
-
-def scatterPath(path):
-    scatter([v.x for v in path], [v.y for v in path], '-b')
-
-def plotStates(states):
-    for s in states:
-        plt.plot(s[:,0],s[:,1])
-
-def plotRRTVertices(RRT):
-    scatter([v.x for v in RRT.vertices], [v.y for v in RRT.vertices],color='blue')
-    scatter(RRT.vGoal.x, RRT.vGoal.y, c = 'g')
-    plotObstacles(RRT)
-
-def saveRRTVerticesPlot(RRT,saveDir):
-    fig = plt.figure(figsize=(20,20))  
-    plt.axis('equal')  
-    plt.grid(1)
-#     plt.ion()
-    plt.title('Sampling-based path planning using stochastic optimal control',fontsize=20)    
-    scatter(RRT.vInit.x, RRT.vInit.y, c = 'r')     
-    scatter(RRT.vGoal.x, RRT.vGoal.y, c = 'g')
-    print len(RRT.vertices)
-    plt.legend(['start', 'goal'], loc=3)
-    plotObstacles(RRT)
-    for i,v in enumerate(RRT.vertices[1:]):   
-        print i
-        scatter(v.x, v.y ,color='blue')  
-        savefig(saveDir+str(i)+'.png')
-#         disp.display(gcf())
-#         disp.clear_output(wait=True)
-
-def saveRRTPathPlot(RRT,saveDir):
-    plotObstacles(RRT)
-    scatter(RRT.vInit.x, RRT.vInit.y, c = 'r')     
-    scatter(RRT.vGoal.x, RRT.vGoal.y, c = 'g')
-    for i,v in enumerate(RRT.pathReversed):
-        scatter(v.x, v.y ,color='blue')        
-        savefig(saveDir+str(i)+'.png')
-
-def plotTrajectoryVertices(trajectory):
-    scatter([v.x for v in trajectory], [v.y for v in trajectory],color='blue')
-    scatter(trajectory[-1].x,trajectory[-1].y,color='red')
-    scatter(trajectory[0].x,trajectory[0].y,color='green')
-
-def plotAllVertices(PI_RRT):
-    for trajectory in PI_RRT.trajectories:
-        plt.plot([v.x for v in trajectory], [v.y for v in trajectory])
-        scatter(trajectory[-1].x,trajectory[-1].y)
-        scatter(trajectory[0].x,trajectory[0].y)
-    plt.plot([v.x for v in PI_RRT.RRT.path], [v.y for v in PI_RRT.RRT.path],color='r')
-#     plt.plot(states[:,0],states[:,1],color='g')
-
-def plotTree(RRT):    
-    plt.ion()
-    scatter(RRT.vertices[0].x, RRT.vertices[0].y, c = 'r')
-#     scatter(RRT.vGoal.x, RRT.vGoal.y, c = 'g')
-    plotObstacles(RRT)
-#     scatter([v.x for v in RRT.vertices],[v.y for v in RRT.vertices])
-    for i,v in enumerate(RRT.vertices):
-        v_p = RRT.vertices[v.parent]
-        plot([v_p.x, v.x], [v_p.y, v.y],'b')  
-        plt.grid(True)  
-        disp.display(gcf())
-        disp.clear_output(wait=True)
-
-def plotObstacles(RRT):
-    for obstacle in RRT.obstacles:    
-        x = []
-        y = []
-        x.extend([obstacle.center[0] - obstacle.size[0]/2])
-        x.extend([obstacle.center[0] - obstacle.size[0]/2])
-        x.extend([obstacle.center[0] + obstacle.size[0]/2])
-        x.extend([obstacle.center[0] + obstacle.size[0]/2])
-        x.extend([obstacle.center[0] - obstacle.size[0]/2])
-        y.extend([obstacle.center[1] - obstacle.size[1]/2])
-        y.extend([obstacle.center[1] + obstacle.size[1]/2])
-        y.extend([obstacle.center[1] + obstacle.size[1]/2])
-        y.extend([obstacle.center[1] - obstacle.size[1]/2])
-        y.extend([obstacle.center[1] - obstacle.size[1]/2])
-        obstaclePlot = plot(x,y,'r')
-
-# Variables
-vInit = Vertex(-9.,0.,0.,0.,0.,0)
-vGoal = Vertex(9.,0.,0.,10.,0.,0)
-alphas = [0.25,0.5,1.0]
-alpha = alphas[2]
-obstacleTypes = ['single', 'double']
-obstacleType = obstacleTypes[1]
-runTypes = ['rrt','rrtloop','pirrt']
-runType = runTypes[2]
-useRRTStar = True
-controlledSteering = True
-plottingInterval='notend'
+# Load variables
+with open('variables.yaml') as f:
+    variables = yaml.load(f)
 
 # Create directory to save files
-saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/April23_'+obstacleType+'_obstacle_alpha_'+str(alpha)+'_controlledSteering_generateTrajectories2/'
-print saveDir
-# sys.exit()
+saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/'+datetime.datetime.now().strftime("%m_%d_%y_%H_%M_%S")+'_'+\
+            variables['obstacleType']+'_obstacle_alpha_'+str(variables['alpha'])+'/'
 try:
     os.makedirs(saveDir)
 except OSError as e:
@@ -134,27 +41,32 @@ except OSError as e:
         raise
 call('rm '+saveDir+'*',shell=True)
 
-if runType == 'rrt':
-	pS = plotStore(vInit,vGoal,saveDir)
-	rrt = RRT(vInit,vGoal,alpha=alpha,plotStore=pS,controlledSteering=controlledSteering,plottingInterval=plottingInterval,obstacleType=obstacleType)
-	rrt.extractPath()
+plotStore = plotStore(Vertex(*variables['vInit']),Vertex(*variables['vGoal']),saveDir)
 
-if runType == 'rrtloop':
-    if useRRTStar:
-        for o in obstacleTypes:
-            for a in alphas:
-                pS = plotStore(vInit,vGoal,saveDir)
-                rrt = RRTStar(vInit,vGoal,alpha=a,plotStore=pS,plottingInterval=plottingInterval,obstacleType=o)
+for i in range(10):
+    if variables['runType'] == 'rrt':
+        if variables['useRRTStar']: 
+            rrt = RRTStar(variables,plotStore)
+        else:
+            rrt = RRT(variables,plotStore)
+        rrt.computeSearchRadius()
+        rrt.extractPath()
+        sys.exit()
+
+if variables['runType'] == 'rrtloop':
+    if variables['useRRTStar']:
+        for o in variables['obstacleTypes']:
+            for a in variables['alphas']:
+                rrt = RRTStar(variables,plotStore)
                 rrt.extractPath()
     else:
-        for o in obstacleTypes:
-            for a in alphas:
-                pS = plotStore(vInit,vGoal,saveDir)
+        for o in variables['obstacleTypes']:
+            for a in variables['alphas']:
                 for i in range(100):                    
                     rrt = RRT(vInit,vGoal,alpha=a,plotStore=pS,plottingInterval=plottingInterval,obstacleType=o)
                     rrt.extractPath()
 
-if runType == 'pirrt':
+if variables['runType'] == 'pirrt':
     pi_rrt = PI_RRT(vInit,vGoal,alpha,saveDir,useRRTStar,controlledSteering,obstacleType)
     # pi_rrt.plottingInterval = 'notend'
     # pi_rrt.generateTrajectoriesMP()
@@ -185,6 +97,7 @@ if runType == 'pirrt':
         dill.dump(pi_rrt,open(saveDir+'PI_RRT_'+str(i)+'.p','wb'))
 
     pi_rrt.RRT.plotAll()
+
 # rc = call(".//home/ankit/Documents/Thesis/createVideo.sh",shell=True)    
 
 # for obstacleType in obstacleTypes:
@@ -240,4 +153,3 @@ if runType == 'pirrt':
 #         print RRTcompletionTimes
 # print RRTcompletionIterations
 # print RRTcompletionTimes 
-
