@@ -20,25 +20,28 @@ class RRT(object):
 
     def __init__(self,variables,plotStore):
 
-        self.plotStore = plotStore
-
+        # Yaml variables        
+        self.alpha = variables['alpha']
+        self.controlledSteering = variables['controlledSteering']
+        self.dt = variables['dt']
+        self.goalDist = variables['goalDist']
+        self.lastSteerOnly = variables['lastSteerOnly']
+        self.numStepsSteering = variables['numStepsSteering']
+        self.obstacleType = variables['obstacleType']
+        self.plottingInterval = variables['plottingInterval']   
+        self.r = variables['r']
+        self.velocity = variables['velocity']
         self.vInit = Vertex(*variables['vInit'])
         self.vGoal = Vertex(*variables['vGoal'])
-        self.goalDist = variables['goalDist']        
-        self.dt = variables['dt']
-        self.velocity = variables['velocity']
-        self.alpha = variables['alpha']
-        self.r = variables['r']
-        self.controlledSteering = variables['controlledSteering']
-        self.obstacleType = variables['obstacleType']               
-        self.plottingInterval = variables['plottingInterval']
-        self.lastSteerOnly = variables['lastSteerOnly']
 
-        self.createObstacles() 
+        # Derived variables
+        self.minSearchRadius = self.dt*self.numStepsSteering*self.velocity 
+        self.plotStore = plotStore
         self.searchSpace = [min(self.vInit.x, self.vInit.y), max(self.vGoal.x, self.vGoal.y)]
-        self.vertices = [self.vInit]
-        self.verticesSteered = [self.vInit]
+        self.createObstacles()
         self.sampledPoints = []
+        self.vertices = [self.vInit]
+        self.verticesSteered = [self.vInit]        
         print 'rrt initialized with ' + str(self.vInit.getState())
 
     def assignControlSpline(self, controlSpline):
@@ -81,9 +84,9 @@ class RRT(object):
                     # print 'using controlled steering'
                     newVertices = self.steerControlled(vNearest, vNearestIndex, vRand)
                 if newVertices is not None:
+                    obstacleFreeStart = self.obstacleFree(vNearest,Vertex(*newVertices[0]))
                     obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
-                    # print obstacleFreeVertices
-                    if obstacleFreeVertices == True:
+                    if obstacleFreeStart and obstacleFreeVertices:
                         if self.lastSteerOnly is False:
                             for i in range(newVertices.shape[0]):
                                 self.vertices.append(Vertex(*newVertices[i]))
@@ -91,15 +94,9 @@ class RRT(object):
                                 # if self.plotStore is not None:
                                 #     self.plotStore.allRRTVertices.append(Vertex(*newVertices[i]))
                         else:
-                            print 'len(self.vertices): ' + str(len(self.vertices))
-                            print 'len(self.verticesSteered): ' + str(len(self.verticesSteered))
                             for i in range(newVertices.shape[0]):
                                 self.vertices.append(Vertex(*newVertices[i]))
-                            # self.verticesSteered.append(Vertex(*newVertices[0]))
-                            # print 'newVertices[-1]: ' + str(newVertices[-1])
                             self.verticesSteered.append(Vertex(*newVertices[-1]))
-                            print 'len(self.vertices): ' + str(len(self.vertices))
-                            print 'len(self.verticesSteered): ' + str(len(self.verticesSteered))
 
                     if self.plotStore is not None:
                         if self.plottingInterval != 'end':

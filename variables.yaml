@@ -16,7 +16,7 @@ runType: 'pirrt'
 searchRadius: 5
 steeringRatio: 1
 tHorizon: 1
-useRRTStar: False
+useRRTStar: True
 velocity: 5
 vInit: [-9.,0.,0.,0.,0.,0.]
 vGoal: [9.,0.,0.,10.,0.,0.]
