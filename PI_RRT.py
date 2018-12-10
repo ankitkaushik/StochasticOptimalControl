@@ -13,36 +13,42 @@ import multiprocessing as mp
 
 class PI_RRT(object):
 
-    def __init__(self, vInit, vGoal, alpha, plotSaveDir, useRRTStar, controlledSteering, obstacleType):
-        self.vInit = vInit
-        self.vGoal = vGoal
-        self.searchSpace = [min(vInit.x, vInit.y), max(vGoal.x, vGoal.y)]
-        self.goalDist = 1.5
-        self.path = [vInit]
-        self.alpha = alpha
-        self.r = 4.0
-        self.Lambda = 10
-        self.M = 5
+    def __init__(self,variables,plotStore):
+
+        # Yaml variables        
+        self.alpha = variables['alpha']
+        self.controlledSteering = variables['controlledSteering']
+        self.dt = variables['dt']
+        self.goalDist = variables['goalDist']
+        self.Lambda = variables['Lambda']
+        self.M = variables['M']
+        self.numStepsSteering = variables['numStepsSteering']
+        self.obstacleType = variables['obstacleType']
+        self.plottingInterval = variables['plottingInterval']   
+        self.r = variables['r']
+        self.tHorizon = variables['tHorizon']
+        self.velocity = variables['velocity']
+        self.vInit = Vertex(*variables['vInit'])
+        self.vGoal = Vertex(*variables['vGoal'])
+        self.wheelBase = variables['wheelBase']
+        self.steeringRatio = variables['steeringRatio']
+        self.useRRTStar = variables['useRRTStar']
+        self.variables = variables
+
+        # Derived variables
+        self.allRRTVertices = []
+        self.controlDiscretation = self.dt / 1
+        self.minSearchRadius = self.dt*self.numStepsSteering*self.velocity
         self.p = -1 / self.alpha ** 2
+        self.path = [self.vInit] 
+        self.plotStore = plotStore
+        self.R = self.Lambda / self.alpha ** 2
         self.Q = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
         self.Qf = np.array([[10.0, 0.0, 0.0], [0.0, 10.0, 0.0], [0.0, 0.0, 10.0]])
-        self.R = self.Lambda / self.alpha ** 2
-        self.tHorizon = 1
-        self.dt = 0.1
-        self.velocity = 2.3
-        self.wheelBase = 2.0
-        self.steeringRatio = 1
-        self.controlDiscretation = self.dt / 1
-        self.allRRTVertices = []
         self.sampledPoints = []
-        print 'pi_rrt initialized'
-        self.plotSaveDir = plotSaveDir
-        self.plotStore = plotStore(self.vInit, self.vGoal, self.plotSaveDir)
-        self.useRRTStar = useRRTStar
-        self.controlledSteering = controlledSteering
-        self.obstacleType = obstacleType
-        self.plottingInterval = 'end'
-
+        self.searchSpace = [min(self.vInit.x, self.vInit.y), max(self.vGoal.x, self.vGoal.y)]
+        print 'pi_rrt initialized'   
+        
     def reachedGoal(self, v):
         if sqrt((v.x - self.vGoal.x) ** 2 + (v.y - self.vGoal.y) ** 2) <= self.goalDist:
             return True
@@ -53,14 +59,14 @@ class PI_RRT(object):
         successFlag = True
         print 'runRRT method called'
         if self.useRRTStar:
-            self.RRT = RRTStar(self.path[-1], self.vGoal, self.searchSpace, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore, self.obstacleType, self.plottingInterval)
+            self.RRT = RRTStar(self.variables,self.plotStore)
         else:
-            self.RRT = RRT(self.path[-1], self.vGoal, self.searchSpace, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore, self.obstacleType, self.plottingInterval)
+            self.RRT = RRT(self.variables,self.plotStore)
         print 'RRT initialized'
         if self.RRT.extractPath():
             print 'RRT path extracted'
             self.allRRTVertices.extend(self.RRT.vertices)
-            self.sampledPoints.extend(self.RRT.sampledPoints)
+            self.plotStore.sampledPoints.extend(self.RRT.sampledPoints)
             print 'len of allRRTVertices is ' + str(len(self.allRRTVertices))
             self.rrtStates = self.constructStatesMatrix(self.RRT.pathReversed)
             self.controlSplineRRT = interp1d(self.rrtStates[:, 3], self.rrtStates[:, 4], fill_value='extrapolate')
@@ -69,50 +75,16 @@ class PI_RRT(object):
             successFlag = False
             return successFlag
 
-    def runRRTMP(self, trajNum):
-        print 'trajectory ' + str(trajNum)
-        if self.useRRTStar:
-            RRT = RRTStar(self.path[-1], self.vGoal, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.plotStore)
-        else:
-            RRT = RRT(self.path[-1], self.vGoal, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore)
-        RRT.extractPath()
-        return RRT.pathReversed
-
-    def generateTrajectory(self, numSteps, dt, alpha, velocity, wheelBase, steeringRatio, r):
-        zNew = self.RRT.zInit
-        zOrigin = deepcopy(zNew)
-        trajectory = [zOrigin]
-        dws = []
-        for i in range(len(self.RRT.pathReversed) - 1):
-            dw = np.random.uniform(0, 1)
-            dx = velocity * cos(zNew.theta) * self.RRT.dt
-            dy = velocity * sin(zNew.theta) * self.RRT.dt
-            dtheta = 1 / r * (self.RRT.controls[i] * self.RRT.dt + self.alpha * dw)
-            zNew = Vertex(trajectory[-1].x + dx, trajectory[-1].y + dy, i, theta=trajectory[-1].theta + dtheta)
-            trajectory.append(zNew)
-            dws.append(dw)
-
-        dws.append(0)
-        return (trajectory, dws)
-
     def generateTrajectories(self):
-        self.trajectories = []
-        self.dws = []
-        for i in range(self.M):
-            trajectory, dws = self.generateTrajectory(numSteps=10, dt=0.5, alpha=0.25, velocity=10, wheelBase=2.0, steeringRatio=1, r=0.5)
-            self.trajectories.append(trajectory)
-            self.dws.append(dws)
-
-    def generateTrajectories2(self):
         successFlag = True
         self.trajectories = []
         for i in range(self.M):
             print 'doing rrt'
             if self.useRRTStar:
-                newRRT = RRTStar(self.RRT.vInit, self.RRT.vGoal, self.searchSpace, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore, self.obstacleType, self.plottingInterval)
+                newRRT = RRTStar(self.variables,self.plotStore)
                 newRRT.assignControlSpline(self.controlSplineRRT)
             else:
-                newRRT = RRT(self.RRT.vInit, self.RRT.vGoal, self.searchSpace, self.dt, self.velocity, self.wheelBase, self.steeringRatio, self.alpha, self.r, self.controlledSteering, self.plotStore, self.obstacleType, self.plottingInterval)
+                newRRT = RRT(self.variables,self.plotStore)
                 newRRT.assignControlSpline(self.controlSplineRRT)
             if newRRT.extractPath():
                 print 'RRT path extracted'
@@ -329,15 +301,7 @@ class PI_RRT(object):
 
         return variation
 
-    def executeControl(self):
-        times = range(len(self.RRT.controls))
-        variation = self.computeVariation()
-        self.RRT.controls += variation
-        spline = UnivariateSpline(times, self.RRT.controls)
-        states = self.RRT.runKinematicModelControls(self.RRT.zInit.getState(), numSteps=10, dt=self.RRT.dt, spline=spline, velocity=self.RRT.velocity, wheelBase=self.RRT.wheelBase, steeringRatio=self.RRT.steeringRatio)
-        return states
-
-    def executeControl2(self, t, U):
+    def executeControl(self, t, U):
         self.t = t
         self.U = U
         self.controlSplinePathIntegral = interp1d(t, U, fill_value='extrapolate')
@@ -353,13 +317,13 @@ class PI_RRT(object):
             else:
                 self.newPathVertices = []
                 break
-
         self.path.extend(self.newPathVertices[1:])
         self.plotStore.path = self.path
+        self.variables['vInit'] = self.path[-1].getState()
 
     def run(self):
         self.runRRT()
         print 'RRT run'
-        self.generateTrajectories2()
+        self.generateTrajectories()
         self.executeControl2(*self.computeVariation2())
         print 'new pi_rrt point: ' + str(self.path[-1].getState())

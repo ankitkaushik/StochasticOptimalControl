@@ -1,5 +1,5 @@
 import sys
-from math import sqrt, cos, sin, atan, atan2, pi, tan, fabs
+from math import sqrt, cos, sin, atan, atan2, pi, tan, fabs, log
 import numpy as np
 from copy import deepcopy
 from Vertex import Vertex
@@ -20,51 +20,28 @@ pylab.rcParams.update(params)
 
 class RRTStar(object):
 
-    # def __init__(self, vInit, vGoal, searchSpace, dt, velocity, wheelBase, steeringRatio, alpha, r, controlledSteering, plotStore, obstacleType, plottingInterval):
-    #     self.vInit = vInit
-    #     self.vGoal = vGoal
-    #     self.goalDist = 0.5
-    #     self.vertices = [vInit]
-    #     self.verticesSteered = [vInit]        
-    #     self.searchSpace = searchSpace
-    #     self.dt = dt
-    #     self.velocity = velocity
-    #     self.wheelBase = wheelBase
-    #     self.steeringRatio = steeringRatio
-    #     self.alpha = alpha
-    #     self.r = r
-    #     self.controlledSteering = controlledSteering
-    #     self.sampledPoints = []
-    #     self.obstacleType = obstacleType
-    #     self.createObstacles()
-    #     print 'rrt initialized with ' + str(self.vInit.getState())
-    #     self.plotStore = plotStore
-    #     self.plottingInterval = plottingInterval
-    #     self.lastSteerOnly = True
-    #     self.searchRadius = 5
-
     def __init__(self,variables,plotStore):
 
-        self.plotStore = plotStore
-
+        # Yaml variables        
+        self.alpha = variables['alpha']
+        self.controlledSteering = variables['controlledSteering']
+        self.dt = variables['dt']
+        self.goalDist = variables['goalDist']
+        self.numStepsSteering = variables['numStepsSteering']
+        self.obstacleType = variables['obstacleType']
+        self.plottingInterval = variables['plottingInterval']   
+        self.r = variables['r']
+        self.velocity = variables['velocity']
         self.vInit = Vertex(*variables['vInit'])
         self.vGoal = Vertex(*variables['vGoal'])
-        self.goalDist = variables['goalDist']        
-        self.dt = variables['dt']
-        self.velocity = variables['velocity']
-        self.alpha = variables['alpha']
-        self.r = variables['r']
-        self.controlledSteering = variables['controlledSteering']
-        self.obstacleType = variables['obstacleType']               
-        self.plottingInterval = variables['plottingInterval']
-        self.lastSteerOnly = variables['lastSteerOnly']
-        self.numStepsSteering = variables['numStepsSteering']
 
-        self.createObstacles() 
+        # Derived variables
+        self.minSearchRadius = self.dt*self.numStepsSteering*self.velocity 
+        self.plotStore = plotStore
         self.searchSpace = [min(self.vInit.x, self.vInit.y), max(self.vGoal.x, self.vGoal.y)]
-        self.vertices = [self.vInit]
-        self.verticesSteered = [self.vInit]
+        self.createObstacles()
         self.sampledPoints = []
+        self.vertices = [self.vInit]        
         print 'rrt initialized with ' + str(self.vInit.getState())
 
     def assignControlSpline(self, controlSpline):
@@ -79,12 +56,13 @@ class RRTStar(object):
             self.obstacles.append(Obstacle(center=[-2, 0.0], size=[3.5, 1.2]))
             self.obstacles.append(Obstacle(center=[-2, 1.75], size=[3.5, 1.5]))
             self.obstacles.append(Obstacle(center=[-2, -1.75], size=[3.5, 1.5]))
-
-    def computeSearchRadius(self):
         obstacleFreeArea = (self.searchSpace[1]-self.searchSpace[0]) ** 2
         for obstacle in self.obstacles:
             obstacleFreeArea -= obstacle.getArea()
-        gammaRRT = (2*(1+(1/2)**(1/2)))*((obstacleFreeArea/1)**(1/2))
+        self.gammaRRT = (2*(1+(1/2)**(1/2)))*((obstacleFreeArea/1)**(1/2))
+
+    def computeSearchRadius(self):
+        return min(self.gammaRRT*((log(len(self.vertices))/len(self.vertices))**(1/2)),self.minSearchRadius)
 
     def computeSteeringAngle(self, trackVertex, currentVertex):
         xDistance = trackVertex.x - currentVertex.x
@@ -115,25 +93,26 @@ class RRTStar(object):
                     # print 'using controlled steering'
                     newVertices = self.steerControlled(vNearest, vNearestIndex, vRand)
                 if newVertices is not None:
+                    obstacleFreeStart = self.obstacleFree(vNearest,Vertex(*newVertices[0]))
                     obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
-                    if obstacleFreeVertices:
-                        lastNewVertex = Vertex(*newVertices[-1])
+                    if obstacleFreeStart and obstacleFreeVertices:
+                        steeredVertex = Vertex(*newVertices[-1])
                         for i,v in enumerate(self.vertices):
-                            # if self.getDistance(v,lastNewVertex) < self.searchRadius:
-                            if self.obstacleFree(v,lastNewVertex):                                
-                                if v.cost+self.getDistance(v,lastNewVertex) < vNearest.cost+self.getDistance(vNearest,lastNewVertex):
-                                    vNearest = v
-                                    vNearestIndex = i
-                        lastNewVertex.parent = vNearestIndex
-                        lastNewVertex.cost = vNearest.cost+self.getDistance(vNearest,lastNewVertex)
-                        if self.lastSteerOnly is False:
-                            for i in range(newVertices.shape[0]):
-                                self.vertices.append(Vertex(*newVertices[i]))
-                                self.verticesSteered.append(Vertex(*newVertices[i]))
-                        else:
-                            for i in range(newVertices.shape[0]):
-                                self.vertices.append(Vertex(*newVertices[i]))
-                            self.verticesSteered.append(Vertex(*newVertices[-1]))
+                            if self.getDistance(v,steeredVertex) < self.computeSearchRadius():
+                                if self.obstacleFree(v,steeredVertex):                                
+                                    if v.cost+self.getDistance(v,steeredVertex) < vNearest.cost+self.getDistance(vNearest,steeredVertex):
+                                        vNearest = v
+                                        vNearestIndex = i
+                        steeredVertex.parent = vNearestIndex
+                        steeredVertex.cost = vNearest.cost+self.getDistance(vNearest,steeredVertex)
+                        # if self.lastSteerOnly is False:
+                        #     for i in range(newVertices.shape[0]):
+                        #         self.vertices.append(Vertex(*newVertices[i]))
+                                # self.verticesSteered.append(Vertex(*newVertices[i]))
+                        # else:
+                            # for i in range(newVertices.shape[0]):
+                            #     self.vertices.append(Vertex(*newVertices[i]))
+                        self.vertices.append(steeredVertex)
                         if self.plotStore is not None:
                             self.plotStore.allRRTVertices.append(newVertices[-1])
 
@@ -142,12 +121,12 @@ class RRTStar(object):
                                 self.plotAll()
 
                         for i,v in enumerate(self.vertices):
-                            if i != lastNewVertex.parent:
-                                # if self.getDistance(v,lastNewVertex) < self.searchRadius:
-                                if self.obstacleFree(v,lastNewVertex):                                    
-                                    if lastNewVertex.cost+self.getDistance(v,lastNewVertex) < v.cost:
-                                        v.parent = len(self.vertices)-1
-                                        v.cost = lastNewVertex.cost+self.getDistance(v,lastNewVertex)
+                            if i != steeredVertex.parent:
+                                if self.getDistance(v,steeredVertex) < self.computeSearchRadius():
+                                    if self.obstacleFree(v,steeredVertex):                                    
+                                        if steeredVertex.cost+self.getDistance(v,steeredVertex) < v.cost:
+                                            v.parent = len(self.vertices)-1
+                                            v.cost = steeredVertex.cost+self.getDistance(v,steeredVertex)
                   
                     if self.plotStore is not None:
                         if self.plottingInterval != 'end':
@@ -224,11 +203,12 @@ class RRTStar(object):
     def getNN(self, vRand):        
         vNearest = self.vertices[0]
         vNearestIndex = 0
-        xVertices = [v.x for v in self.vertices]
-        for i, v in enumerate(self.verticesSteered):
+        # xVertices = [v.x for v in self.vertices]
+        for i, v in enumerate(self.vertices):
             if self.getDistance(v, vRand) < self.getDistance(vNearest, vRand):
                 vNearest = v
-                vNearestIndex = xVertices.index(v.x)
+                # vNearestIndex = xVertices.index(v.x)
+                vNearestIndex = i
         return (vNearest, vNearestIndex)   
 
     def onObstacle(self, v):
@@ -308,8 +288,10 @@ class RRTStar(object):
         # rrtVerticesPlot = plt.scatter([ v.x for v in self.plotStore.allRRTVertices ], [ v.y for v in self.plotStore.allRRTVertices ], c='cyan')
         rrtVerticesPlot = plt.scatter([ v.x for v in self.vertices ], [ v.y for v in self.vertices ], c='green')
         # rrtVerticesPlot = None
-        # rrtSampledPointsPlot = plt.scatter([ v.x for v in self.plotStore.sampledPoints ], [ v.y for v in self.plotStore.sampledPoints ], c='orange')
-        rrtSampledPointsPlot = None
+        # print len(self.plotStore.sampledPoints)
+        # sys.exit()
+        rrtSampledPointsPlot = plt.scatter([ v.x for v in self.plotStore.sampledPoints ], [ v.y for v in self.plotStore.sampledPoints ], c='orange')
+        # rrtSampledPointsPlot = None
         initPlot = plt.scatter(self.plotStore.vInit.x, self.plotStore.vInit.y, c='r')
         goalPlot = plt.scatter(self.plotStore.vGoal.x, self.plotStore.vGoal.y, c='g')
         plt.legend([initPlot,

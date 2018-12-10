@@ -18,28 +18,6 @@ pylab.rcParams.update(params)
 
 class RRT(object):
 
-    # def __init__(self, vInit, vGoal, searchSpace, dt, velocity, wheelBase, steeringRatio, alpha, r, controlledSteering, plotStore, obstacleType, plottingInterval):
-    #     self.vInit = vInit
-    #     self.vGoal = vGoal
-    #     self.goalDist = 0.5
-    #     self.vertices = [vInit]
-    #     self.verticesSteered = [vInit]        
-    #     self.searchSpace = searchSpace
-    #     self.dt = dt
-    #     self.velocity = velocity
-    #     self.wheelBase = wheelBase
-    #     self.steeringRatio = steeringRatio
-    #     self.alpha = alpha
-    #     self.r = r
-    #     self.controlledSteering = controlledSteering
-    #     self.sampledPoints = []
-    #     self.obstacleType = obstacleType
-    #     self.createObstacles()
-    #     print 'rrt initialized with ' + str(self.vInit.getState())
-    #     self.plotStore = plotStore
-    #     self.plottingInterval = plottingInterval
-    #     self.lastSteerOnly = True
-
     def __init__(self,variables,plotStore):
 
         self.plotStore = plotStore
@@ -190,6 +168,7 @@ class RRT(object):
     def generateNoise(self):
         dW_1 = self.alpha / self.r * np.random.normal(0.0, np.sqrt(self.dt))
         dW_2 = self.alpha / self.r * np.random.normal() / np.sqrt(self.dt)
+        dw_1 = 0.0
         return dW_1 
 
     def getDistance(self, v1, v2):

@@ -43,15 +43,14 @@ call('rm '+saveDir+'*',shell=True)
 
 plotStore = plotStore(Vertex(*variables['vInit']),Vertex(*variables['vGoal']),saveDir)
 
-for i in range(10):
+for i in range(1):
     if variables['runType'] == 'rrt':
         if variables['useRRTStar']: 
             rrt = RRTStar(variables,plotStore)
         else:
             rrt = RRT(variables,plotStore)
-        rrt.computeSearchRadius()
         rrt.extractPath()
-        sys.exit()
+        dill.dump(rrt,open(saveDir+'RRT_'+str(i)+'.p','wb'))
 
 if variables['runType'] == 'rrtloop':
     if variables['useRRTStar']:
@@ -67,7 +66,7 @@ if variables['runType'] == 'rrtloop':
                     rrt.extractPath()
 
 if variables['runType'] == 'pirrt':
-    pi_rrt = PI_RRT(vInit,vGoal,alpha,saveDir,useRRTStar,controlledSteering,obstacleType)
+    pi_rrt = PI_RRT(variables,plotStore)
     # pi_rrt.plottingInterval = 'notend'
     # pi_rrt.generateTrajectoriesMP()
     pirrtTimes = []
@@ -81,8 +80,10 @@ if variables['runType'] == 'pirrt':
             # if i == 1:
             #     pi_rrt.plottingInterval = 'notend'
             # if pi_rrt.generateTrajectories3():
-            if pi_rrt.generateTrajectories2():
-                pi_rrt.executeControl2(*pi_rrt.computeVariation2())
+            pi_rrt.plottingInterval = 'notend'
+            pi_rrt.variables['plottingInterval'] = 'notend'
+            if pi_rrt.generateTrajectories():
+                pi_rrt.executeControl(*pi_rrt.computeVariation2())
                 print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'
                 pirrtTimes.append(time.time()-startTime)
                 print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
