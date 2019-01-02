@@ -133,9 +133,10 @@ class RRTStar(object):
                   
                     if self.plotStore is not None:
                         if self.plottingInterval != 'end':
-                            if self.iterationCount % 1 == 0:
-                                # print 'plotting!'
-                                self.plotAll()
+                            if hasattr(self, 'controlSpline'):
+                                if self.iterationCount % 10 == 0:
+                                    # print 'plotting!'
+                                    self.plotAll()
                     count += 1
                     print 'extend count is ' + str(count)
             else:

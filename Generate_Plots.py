@@ -1,10 +1,10 @@
-import os, errno
-import yaml
-import sys
-import time, datetime
 from copy import deepcopy
 import cPickle, dill
+import os, errno
 from subprocess import call
+import sys
+import time, datetime
+import yaml
 
 import matplotlib
 matplotlib.use('Agg')
@@ -21,11 +21,11 @@ params = {'legend.fontsize': 'xx-large',
 pylab.rcParams.update(params)
 import numpy as np
 
-from Vertex import Vertex
-from RRT import RRT
-from RRTStar import RRTStar
 from PI_RRT import PI_RRT
 from plotStore import plotStore
+from RRT import RRT
+from RRTStar import RRTStar
+from Vertex import Vertex
 
 # Load variables
 with open('variables.yaml') as f:

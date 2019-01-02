@@ -9,7 +9,7 @@ M: 5
 numStepsSteering: 5
 obstacleTypes: ['single', 'double']
 obstacleType: 'double'
-plottingInterval: 'end'
+plottingInterval: 'notend'
 r: 4.0
 runTypes: ['rrt','rrtloop','pirrt']
 runType: 'pirrt'
