@@ -18,7 +18,7 @@ params = {'legend.fontsize': 'xx-large',
          'ytick.labelsize':'xx-large'}
 pylab.rcParams.update(params)
 
-class RRTStar(object):
+class RRTStarTest(object):
 
     def __init__(self,variables,plotStore):
 
@@ -46,9 +46,8 @@ class RRTStar(object):
         self.verticesSteered = [self.vInit]        
         print 'rrt initialized with ' + str(self.vInit.getState())
 
-    def assignControlSpline(self, controlSpline, maxInterpolationTime=np.inf):
+    def assignControlSpline(self, controlSpline):
         self.controlSpline = controlSpline
-        self.maxInterpolationTime = maxInterpolationTime
 
     def createObstacles(self):
         self.obstacles = []
@@ -108,7 +107,6 @@ class RRTStar(object):
                                         vNearestIndex = i
                         steeredVertex.parent = vNearestIndex
                         steeredVertex.cost = vNearest.cost+self.getDistance(vNearest,steeredVertex)
-                        # Adding in 
                         if self.lastSteerOnly is False:
                             for i in range(newVertices.shape[0]):
                                 self.vertices.append(Vertex(*newVertices[i]))
@@ -121,7 +119,6 @@ class RRTStar(object):
                         # if self.plotStore is not None:
                         #     self.plotStore.allRRTVertices.append(newVertices[-1])
 
-                        # This plots every iteration of extend
                         # if self.plotStore is not None:
                         #     if self.plottingInterval != 'end':
                         #         self.plotAll()
@@ -134,6 +131,12 @@ class RRTStar(object):
                                             v.parent = len(self.verticesSteered)-1
                                             v.cost = steeredVertex.cost+self.getDistance(v,steeredVertex)
                   
+                    if self.plotStore is not None:
+                        if self.plottingInterval != 'end':
+                            if hasattr(self, 'controlSpline'):
+                                if self.iterationCount % 10 == 0:
+                                    # print 'plotting!'
+                                    self.plotAll()
                     count += 1
                     print 'extend count is ' + str(count)
             else:
@@ -159,14 +162,6 @@ class RRTStar(object):
                 if self.extend():
                     lastVertex = self.verticesSteered[-1]
                     print 'RRT iteration count is: ' + str(self.iterationCount)
-                    # Plotting every 1000 iterations of RRT if end is switched off
-                    if self.plotStore is not None:
-                        if self.plottingInterval != 'end':
-                            if hasattr(self, 'controlSpline'):
-                                if self.iterationCount % 1000 == 0:
-                                    print 'plotting!'
-                                    self.plotAll()
-
                     self.iterationCount += 1
                 else:
                     successFlag = False
@@ -286,7 +281,6 @@ class RRTStar(object):
             obstaclePlot = plt.plot(x, y, 'r')
 
         try:
-            # pass
             rrtPathPlot = plt.plot([ v.x for v in self.pathReversed ], [ v.y for v in self.pathReversed ], '-b', linewidth=3.0)
             for p in self.plotStore.RRTpaths:
                 plt.plot([ v.x for v in p ], [ v.y for v in p ], linewidth=3.0)
@@ -405,13 +399,8 @@ class RRTStar(object):
         # print 'vNearestIndex: ' + str(vNearestIndex)
         newVertices = np.zeros((self.numStepsSteering + 1, 10))
         if hasattr(self, 'controlSpline'):
-            currentTime = vNearest.time + self.dt
-            if currentTime>self.maxInterpolationTime:
-                dtheta = 0.0
-                noise = self.generateNoise()
-            else:
-                dtheta = self.controlSpline(currentTime) / self.r
-                dtheta += self.generateNoise()
+            dtheta = self.controlSpline(vNearest.time + self.dt) / self.r
+            dtheta += self.generateNoise()
         else:
             dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
             dtheta += self.generateNoise()
@@ -429,15 +418,10 @@ class RRTStar(object):
             dy = self.velocity * sin(newVertices[i - 1, 2])
             newVertices[i, 0:2] = newVertices[i - 1, 0:2] + self.dt * np.array([dx, dy])
             if hasattr(self, 'controlSpline'):
-                currentTime = newVertices[i - 1, 3] + self.dt
-                if currentTime>self.maxInterpolationTime:
-                    dtheta = 0.0
-                    noise = self.generateNoise()
-                else:
-                    dtheta = self.controlSpline(currentTime) / self.r
-                    # dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r                
-                    # dtheta += self.generateNoise()
-                    noise = self.generateNoise()
+                dtheta = self.controlSpline(newVertices[i - 1, 3] + self.dt) / self.r
+                # dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r                
+                # dtheta += self.generateNoise()
+                noise = self.generateNoise()
             else:
                 dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
                 # print 'dtheta: ' + str(dtheta)

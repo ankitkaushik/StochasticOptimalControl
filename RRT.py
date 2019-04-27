@@ -44,8 +44,9 @@ class RRT(object):
         self.verticesSteered = [self.vInit]        
         print 'rrt initialized with ' + str(self.vInit.getState())
 
-    def assignControlSpline(self, controlSpline):
+    def assignControlSpline(self, controlSpline, maxInterpolationTime=np.inf):
         self.controlSpline = controlSpline
+        self.maxInterpolationTime = maxInterpolationTime
     
     def createObstacles(self):
         self.obstacles = []

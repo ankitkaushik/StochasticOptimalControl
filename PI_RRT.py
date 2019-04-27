@@ -47,7 +47,11 @@ class PI_RRT(object):
         self.Qf = np.array([[10.0, 0.0, 0.0], [0.0, 10.0, 0.0], [0.0, 0.0, 10.0]])
         self.sampledPoints = []
         self.searchSpace = [min(self.vInit.x, self.vInit.y), max(self.vGoal.x, self.vGoal.y)]
-        print 'pi_rrt initialized'   
+        print 'pi_rrt initialized'
+
+        # Variables for trying new interpolation set up
+        # self.timesNominal = []
+        # self.controlInputsNominal = []   
         
     def reachedGoal(self, v):
         if sqrt((v.x - self.vGoal.x) ** 2 + (v.y - self.vGoal.y) ** 2) <= self.goalDist:
@@ -70,6 +74,15 @@ class PI_RRT(object):
             print 'len of allRRTVertices is ' + str(len(self.allRRTVertices))
             self.rrtStates = self.constructStatesMatrix(self.RRT.pathReversed)
             self.controlSplineRRT = interp1d(self.rrtStates[:, 3], self.rrtStates[:, 4], fill_value='extrapolate')
+
+            # So, as we know extrapolation on the nominal trajectory can lead to strange outputs when the time extends beyond the last vertex in the path
+            # Let's try an alternative way of doing interpolation that uses the whole RRT graph
+            # timesNominal = []
+            # for v in self.RRT.vertices:
+            # for v in self.RRT.pathReversed: 
+            #     self.timesNominal.append(v.getState()[3])
+            #     self.controlInputsNominal.append(v.getState()[4])
+            # self.controlSplineRRT = interp1d(self.timesNominal, self.controlInputsNominal, fill_value='extrapolate')
             return successFlag
         else:
             successFlag = False
@@ -82,10 +95,10 @@ class PI_RRT(object):
             print 'doing rrt'
             if self.useRRTStar:
                 newRRT = RRTStar(self.variables,self.plotStore)
-                newRRT.assignControlSpline(self.controlSplineRRT)
+                newRRT.assignControlSpline(self.controlSplineRRT, max(self.rrtStates[:, 3]))
             else:
                 newRRT = RRT(self.variables,self.plotStore)
-                newRRT.assignControlSpline(self.controlSplineRRT)
+                newRRT.assignControlSpline(self.controlSplineRRT, max(self.rrtStates[:, 3]))
             if newRRT.extractPath():
                 print 'RRT path extracted'
                 self.trajectories.append(newRRT.pathReversed)

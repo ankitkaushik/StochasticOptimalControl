@@ -80,8 +80,11 @@ if variables['runType'] == 'pirrt':
             # if i == 1:
             #     pi_rrt.plottingInterval = 'notend'
             # if pi_rrt.generateTrajectories3():
-            pi_rrt.plottingInterval = 'notend'
-            pi_rrt.variables['plottingInterval'] = 'notend'
+
+            #Turning on plotting at regular after intervals after the first RRT completes
+            # pi_rrt.plottingInterval = 'notend'
+            # pi_rrt.variables['plottingInterval'] = 'notend'
+            
             if pi_rrt.generateTrajectories():
                 pi_rrt.executeControl(*pi_rrt.computeVariation2())
                 print 'pirrt iteration completed in ' + str(time.time()-startTime) + ' s'

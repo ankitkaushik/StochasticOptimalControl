@@ -6,10 +6,10 @@ goalDist: 0.5
 Lambda: 10
 lastSteerOnly: True
 M: 5
-numStepsSteering: 5
+numStepsSteering: 10
 obstacleTypes: ['single', 'double']
 obstacleType: 'double'
-plottingInterval: 'notend'
+plottingInterval: 'end'
 r: 4.0
 runTypes: ['rrt','rrtloop','pirrt']
 runType: 'pirrt'
