@@ -7,7 +7,7 @@ from Obstacle import Obstacle
 import time
 import matplotlib.pyplot as plt
 from utils import ccw
-import cPickle
+import cPickle, dill
 
 import matplotlib.pylab as pylab
 params = {'legend.fontsize': 'xx-large',
@@ -26,6 +26,7 @@ class RRTStar(object):
         self.alpha = variables['alpha']
         self.controlledSteering = variables['controlledSteering']
         self.dt = variables['dt']
+        self.explorationFactor = variables['explorationFactor']
         self.goalDist = variables['goalDist']
         self.lastSteerOnly = variables['lastSteerOnly']
         self.numStepsSteering = variables['numStepsSteering']
@@ -45,6 +46,9 @@ class RRTStar(object):
         self.vertices = [self.vInit]
         self.verticesSteered = [self.vInit]        
         print 'rrt initialized with ' + str(self.vInit.getState())
+
+        #Debugging
+        self.saveDir = variables['saveDir']
 
     def assignControlSpline(self, controlSpline, maxInterpolationTime=np.inf):
         self.controlSpline = controlSpline
@@ -96,7 +100,7 @@ class RRTStar(object):
                     # print 'using controlled steering'
                     newVertices = self.steerControlled(vNearest, vNearestIndex, vRand)
                 if newVertices is not None:
-                    obstacleFreeStart = self.obstacleFree(vNearest,Vertex(*newVertices[0]))
+                    obstacleFreeStart = self.obstacleFree(vNearest,Vertex(*newVertices[-1]))
                     obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
                     if obstacleFreeStart and obstacleFreeVertices:
                         steeredVertex = Vertex(*newVertices[-1])
@@ -108,15 +112,25 @@ class RRTStar(object):
                                         vNearestIndex = i
                         steeredVertex.parent = vNearestIndex
                         steeredVertex.cost = vNearest.cost+self.getDistance(vNearest,steeredVertex)
-                        # Adding in 
+
+                        #Debugging
+                        # for v in self.verticesSteered:
+                        #     if self.obstacleFree(v,self.verticesSteered[v.parent]) is False:
+                        #         dill.dump(self.verticesSteered,open(self.saveDir+'RRT_verticesSteered.p','wb'))
+                        #         print 'Found collision path 1'
+                        #         sys.exit()
+
+                        # Adding in state modification to time for rewired vertices
+                        steeredVertex.time = vNearest.time+1.0
+
                         if self.lastSteerOnly is False:
                             for i in range(newVertices.shape[0]):
                                 self.vertices.append(Vertex(*newVertices[i]))
                                 self.verticesSteered.append(Vertex(*newVertices[i]))
                         else:
-                            for i in range(newVertices.shape[0]):
-                                self.vertices.append(Vertex(*newVertices[i]))
-                        self.verticesSteered.append(steeredVertex)
+                            # for i in range(newVertices.shape[0]):
+                            #     self.vertices.append(Vertex(*newVertices[i]))
+                            self.verticesSteered.append(steeredVertex)
 
                         # if self.plotStore is not None:
                         #     self.plotStore.allRRTVertices.append(newVertices[-1])
@@ -127,13 +141,44 @@ class RRTStar(object):
                         #         self.plotAll()
 
                         for i,v in enumerate(self.verticesSteered):
-                            if i != steeredVertex.parent:
-                                if self.getDistance(v,steeredVertex) < self.computeSearchRadius():
-                                    if self.obstacleFree(v,steeredVertex):                                    
-                                        if steeredVertex.cost+self.getDistance(v,steeredVertex) < v.cost:
-                                            v.parent = len(self.verticesSteered)-1
-                                            v.cost = steeredVertex.cost+self.getDistance(v,steeredVertex)
-                  
+                            # if i != steeredVertex.parent:
+                            if self.getDistance(v,steeredVertex) < self.computeSearchRadius():   
+                                if self.obstacleFree(v,steeredVertex):                                    
+                                    if steeredVertex.cost+self.getDistance(v,steeredVertex) < v.cost:
+                                        
+                                        #Debugging
+                                        # print 'rewiring vertex ' + str(i)
+                                        # print 'v.parent: ' + str(v.parent)
+
+                                        v.parent = len(self.verticesSteered)-1
+
+                                        #Debugging
+                                        # print 'v.parent: ' + str(v.parent)
+
+                                        #Debugging
+                                        # if self.obstacleFree(v,self.verticesSteered[v.parent]) is False:
+                                        #     print 'bad rewiring at iteration ' + str(i)
+                                        #     dill.dump(self.verticesSteered,open(self.saveDir+'RRT_verticesSteered.p','wb'))
+                                        #     sys.exit()
+
+                                        v.cost = steeredVertex.cost+self.getDistance(v,steeredVertex)
+
+                                        # Adding in state modification to time for rewired vertices
+                                        if v.time<steeredVertex.time:
+                                            v.time = steeredVertex.time + 0.5
+                                        else:
+                                            v.time = (steeredVertex.time+v.time)/2
+
+                        #Debugging
+                        # for i,v in enumerate(self.verticesSteered):
+                        #     if self.obstacleFree(v,self.verticesSteered[v.parent]) is False:
+                        #         dill.dump(self.verticesSteered,open(self.saveDir+'RRT_verticesSteered.p','wb'))
+                        #         print 'Found collision path 2 for vertex ' + str(i) + ' with parent ' + str(v.parent)
+                        #         sys.exit()
+                    
+                    else:
+                        print 'obstacleFreeStart: ' + str(obstacleFreeStart)
+                        print 'obstacleFreeVertices: ' + str(obstacleFreeStart)
                     count += 1
                     print 'extend count is ' + str(count)
             else:
@@ -143,7 +188,7 @@ class RRTStar(object):
 
         return successFlag
 
-    def extractPath(self, stopCount = np.inf, stopAtGoal = True):
+    def extractPath(self, stopCount = 1000, stopAtGoal = True):
         successFlag = True
         self.path = []
         self.iterationCount = 0
@@ -203,7 +248,7 @@ class RRTStar(object):
     def generateNoise(self):
         dW_1 = self.alpha / self.r * np.random.normal(0.0, np.sqrt(self.dt))
         dW_2 = self.alpha / self.r * np.random.normal() / np.sqrt(self.dt)
-        return dW_1 
+        return dW_1
 
     def getDistance(self, v1, v2):
         return sqrt((v1.x - v2.x) ** 2 + (v1.y - v2.y) ** 2)
@@ -267,6 +312,7 @@ class RRTStar(object):
         plt.plot([ v.x for v in path ], [ v.y for v in path ], '-b', linewidth=7.0)
 
     def plotAll(self):
+        print 'plotting ' + str(self.plotStore.plotIndex)
         fig = plt.figure(figsize=(20, 20))
         plt.title('Sampling-based path planning using stochastic optimal control \n Alpha = ' + str(self.alpha), fontsize=20)
         plt.axis('equal')
@@ -408,10 +454,10 @@ class RRTStar(object):
             currentTime = vNearest.time + self.dt
             if currentTime>self.maxInterpolationTime:
                 dtheta = 0.0
-                noise = self.generateNoise()
+                noise = self.generateNoise()*self.explorationFactor
             else:
                 dtheta = self.controlSpline(currentTime) / self.r
-                dtheta += self.generateNoise()
+                dtheta += self.generateNoise()*self.explorationFactor
         else:
             dtheta = self.computeSteeringAngle(vRand, vNearest) * self.dt / self.r
             dtheta += self.generateNoise()
@@ -432,25 +478,25 @@ class RRTStar(object):
                 currentTime = newVertices[i - 1, 3] + self.dt
                 if currentTime>self.maxInterpolationTime:
                     dtheta = 0.0
-                    noise = self.generateNoise()
+                    dtheta += self.generateNoise()*self.explorationFactor
+                    # noise = self.generateNoise()
                 else:
                     dtheta = self.controlSpline(currentTime) / self.r
-                    # dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r                
-                    # dtheta += self.generateNoise()
-                    noise = self.generateNoise()
+                    dtheta += self.generateNoise()*self.explorationFactor
+                    # noise = self.generateNoise()
             else:
                 dtheta = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1])) * self.dt / self.r
                 # print 'dtheta: ' + str(dtheta)
-                # dtheta += self.generateNoise()
-                noise = self.generateNoise()
+                dtheta += self.generateNoise()
+                # noise = self.generateNoise()
                 # print 'dtheta: ' + str(dtheta)
-            newVertices[i, 2] = newVertices[i - 1, 2] + dtheta + noise
+            newVertices[i, 2] = newVertices[i - 1, 2] + dtheta
             newVertices[i, 3] = newVertices[i - 1, 3] + self.dt
             # newVertices[i, 4] = self.computeSteeringAngle(vRand, Vertex(*newVertices[i - 1]))
-            if hasattr(self, 'controlSpline'):
-                newVertices[i, 4] = noise*self.r
-            else:
-                newVertices[i, 4] = dtheta*self.r
+            # if hasattr(self, 'controlSpline'):
+            #     newVertices[i, 4] = noise*self.r
+            # else:
+            newVertices[i, 4] = dtheta*self.r
             # print 'newVertices[i, 4]: ' + str(newVertices[i, 4])
             newVertices[i, 5] = newVertexIndex + i - 1
             # print 'newVertices[i,0:6]: ' + str(newVertices[i,0:6])

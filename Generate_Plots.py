@@ -40,6 +40,7 @@ except OSError as e:
     if e.errno != errno.EEXIST:
         raise
 call('rm '+saveDir+'*',shell=True)
+variables['saveDir'] = saveDir
 
 plotStore = plotStore(Vertex(*variables['vInit']),Vertex(*variables['vGoal']),saveDir)
 
@@ -92,6 +93,7 @@ if variables['runType'] == 'pirrt':
                 print 'average pirrt iteration time is ' + str(sum(pirrtTimes)/len(pirrtTimes)) + ' s'
                 i += 1
                 print pi_rrt.path[-1].getState()
+
         pi_rrt.RRT.plotAll()
         pi_rrt.plotStore.RRTpaths = []
         #     else:

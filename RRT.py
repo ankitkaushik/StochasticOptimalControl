@@ -166,7 +166,10 @@ class RRT(object):
     def generateNoise(self):
         dW_1 = self.alpha / self.r * np.random.normal(0.0, np.sqrt(self.dt))
         dW_2 = self.alpha / self.r * np.random.normal() / np.sqrt(self.dt)
-        dw_1 = 0.0
+
+        # Why is this here?
+        # dw_1 = 0.0
+
         return dW_1 
 
     def getDistance(self, v1, v2):

@@ -88,23 +88,27 @@ class PI_RRT(object):
             successFlag = False
             return successFlag
 
-    def generateTrajectories(self):
+    def generateTrajectories(self, stopCount=100):
         successFlag = True
         self.trajectories = []
-        for i in range(self.M):
-            print 'doing rrt'
-            if self.useRRTStar:
-                newRRT = RRTStar(self.variables,self.plotStore)
-                newRRT.assignControlSpline(self.controlSplineRRT, max(self.rrtStates[:, 3]))
-            else:
-                newRRT = RRT(self.variables,self.plotStore)
-                newRRT.assignControlSpline(self.controlSplineRRT, max(self.rrtStates[:, 3]))
-            if newRRT.extractPath():
-                print 'RRT path extracted'
-                self.trajectories.append(newRRT.pathReversed)
-                self.allRRTVertices.extend(newRRT.vertices)
-                self.sampledPoints.extend(self.RRT.sampledPoints)
-                print 'len of allRRTVertices is ' + str(len(self.allRRTVertices))
+        i = 0
+
+        while i < self.M:
+            if i < stopCount:
+                print 'doing rrt'
+                if self.useRRTStar:
+                    newRRT = RRTStar(self.variables,self.plotStore)
+                    newRRT.assignControlSpline(self.controlSplineRRT, max(self.rrtStates[:, 3]))
+                else:
+                    newRRT = RRT(self.variables,self.plotStore)
+                    newRRT.assignControlSpline(self.controlSplineRRT, max(self.rrtStates[:, 3]))
+                if newRRT.extractPath():
+                    print 'RRT path extracted'
+                    self.trajectories.append(newRRT.pathReversed)
+                    self.allRRTVertices.extend(newRRT.vertices)
+                    self.sampledPoints.extend(self.RRT.sampledPoints)
+                    print 'len of allRRTVertices is ' + str(len(self.allRRTVertices))
+                    i += 1
             else:
                 successFlag = False
                 return successFlag
@@ -323,8 +327,13 @@ class PI_RRT(object):
             dx = self.velocity * cos(self.newPathVertices[-1].theta)
             dy = self.velocity * sin(self.newPathVertices[-1].theta)
             dtheta = self.controlSplinePathIntegral(self.path[-1].time + self.controlDiscretation * i) / self.r
-            dtheta += self.RRT.generateNoise()
-            newVertex = Vertex(self.newPathVertices[-1].x + self.controlDiscretation * dx, self.newPathVertices[-1].y + self.controlDiscretation * dy, self.newPathVertices[-1].theta + dtheta, self.newPathVertices[-1].time + self.controlDiscretation * i, dtheta)
+
+            # Does noise need to be introduced to output of compute variation?
+            # dtheta += self.RRT.generateNoise()
+            
+            newVertex = Vertex(self.newPathVertices[-1].x + self.controlDiscretation * dx, self.newPathVertices[-1].y + \
+                self.controlDiscretation * dy, self.newPathVertices[-1].theta + dtheta, self.newPathVertices[-1].time + \
+                self.controlDiscretation * i, dtheta)
             if self.RRT.obstacleFree(newVertex, self.newPathVertices[-1]) == True:
                 self.newPathVertices.append(newVertex)
             else:
