@@ -106,6 +106,7 @@ class RRT(object):
                                 self.plotAll()
                     count += 1
                     print 'extend count is ' + str(count)
+                    print self.verticesSteered[-1].getState()
             else:
                 print stopCount
                 successFlag = False

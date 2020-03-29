@@ -245,8 +245,14 @@ class PI_RRT(object):
                 pathCosts[i] += trajectoryStates[k, i, 0:3].dot(self.Q).dot(trajectoryStates[k, i, 0:3].T)
                 pathCosts[i] += 0.5 * self.controlSplineRRT(trajectoryStates[k, i, 3]).T * self.R * self.controlSplineRRT(trajectoryStates[k, i, 3])
                 noiseCosts[i] += self.controlSplineRRT(trajectoryStates[k, i, 3]) * trajectoryStates[k, i, 4]
-
+            print "Printing path costs for trajectory " + str(k)
+            print "path costs: "
+            print pathCosts
+            print "noise costs: "
+            print noiseCosts
             totalCost = np.trapz(pathCosts[:-1], trajectoryStates[k, :len(trajectory) - 1, 3])
+            print "total cost: "
+            print totalCost
             endStateDiff = trajectoryStates[k, len(trajectory)-1, 0:3] - np.array(self.RRT.vGoal.getState()[0:3])
             totalCost += endStateDiff.dot(self.Qf).dot(endStateDiff.T)
             totalCost += np.trapz(noiseCosts[:-1], trajectoryStates[k, :len(trajectory) - 1, 3])
@@ -260,6 +266,7 @@ class PI_RRT(object):
             regCoef = regCoef * 3
             totalCosts = totalCosts / regCoef
             trajectoryDesirability = np.exp(-totalCosts / self.Lambda)
+        print 'sum(trajectoryDesirability): ' + str(sum(trajectoryDesirability))
 
         print 'computed variation in ' + str(time.time() - startTime) + ' s'
         weights = trajectoryDesirability / sum(trajectoryDesirability)
@@ -273,6 +280,8 @@ class PI_RRT(object):
         t = np.zeros(min(trajectoryLengths))
         for i in range(min(trajectoryLengths)):
             t[i] = trajectoryStates[minTrajectoryIndex,i,3]
+            print 'self.controlSplineRRT(t[i]): ' + str(self.controlSplineRRT(t[i]))
+            print 'dU[i] ' + str(dU[i])
             U[i] = self.controlSplineRRT(t[i]) + dU[i]
             # U[i] = dU[i]  
 

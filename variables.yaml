@@ -13,7 +13,7 @@ obstacleType: 'double'
 plottingInterval: 'end'
 r: 4.0
 runTypes: ['rrt','rrtloop','pirrt']
-runType: 'pirrt'
+runType: 'rrt'
 searchRadius: 5
 steeringRatio: 1
 tHorizon: 1

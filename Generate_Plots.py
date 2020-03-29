@@ -34,24 +34,25 @@ with open('variables.yaml') as f:
 # Create directory to save files
 saveDir = '/'+'/'.join(os.getcwd().split('/')[1:-1])+'/'+datetime.datetime.now().strftime("%m_%d_%y_%H_%M_%S")+'_'+\
             variables['obstacleType']+'_obstacle_alpha_'+str(variables['alpha'])+'/'
+
 try:
     os.makedirs(saveDir)
 except OSError as e:
     if e.errno != errno.EEXIST:
         raise
-call('rm '+saveDir+'*',shell=True)
+# call('rm '+saveDir+'*',shell=True)
 variables['saveDir'] = saveDir
 
 plotStore = plotStore(Vertex(*variables['vInit']),Vertex(*variables['vGoal']),saveDir)
 
-for i in range(1):
+for i in range(10):
     if variables['runType'] == 'rrt':
         if variables['useRRTStar']: 
             rrt = RRTStar(variables,plotStore)
         else:
             rrt = RRT(variables,plotStore)
         rrt.extractPath()
-        dill.dump(rrt,open(saveDir+'RRT_'+str(i)+'.p','wb'))
+        # dill.dump(rrt,open(saveDir+'RRT_'+str(i)+'.p','wb'))
 
 if variables['runType'] == 'rrtloop':
     if variables['useRRTStar']:
@@ -103,6 +104,15 @@ if variables['runType'] == 'pirrt':
         dill.dump(pi_rrt,open(saveDir+'PI_RRT_'+str(i)+'.p','wb'))
 
     pi_rrt.RRT.plotAll()
+
+# Testing summary
+print 'max(plotStore.RRTcompletionIterations): ' + str(max(plotStore.RRTcompletionIterations))
+print 'min(plotStore.RRTcompletionIterations): ' + str(min(plotStore.RRTcompletionIterations))
+print 'mean(plotStore.RRTcompletionIterations): ' + str(np.mean(plotStore.RRTcompletionIterations))
+print 'max(plotStore.RRTcompletionTimes): ' + str(max(plotStore.RRTcompletionTimes))
+print 'min(plotStore.RRTcompletionTimes): ' + str(min(plotStore.RRTcompletionTimes))
+print 'mean(plotStore.RRTcompletionTimes): ' + str(np.mean(plotStore.RRTcompletionTimes))
+
 
 # rc = call(".//home/ankit/Documents/Thesis/createVideo.sh",shell=True)    
 

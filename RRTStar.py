@@ -104,12 +104,18 @@ class RRTStar(object):
                     obstacleFreeVertices = self.obstacleFreeVertices(newVertices)
                     if obstacleFreeStart and obstacleFreeVertices:
                         steeredVertex = Vertex(*newVertices[-1])
+                        print "steeredVertex.getState(): " + str(steeredVertex.getState())
                         for i,v in enumerate(self.verticesSteered):
+                        # for i,v in enumerate(self.vertices):
                             if self.getDistance(v,steeredVertex) < self.computeSearchRadius():
                                 if self.obstacleFree(v,steeredVertex):                                
                                     if v.cost+self.getDistance(v,steeredVertex) < vNearest.cost+self.getDistance(vNearest,steeredVertex):
+                                        print 'rewiring happening'
+                                        print 'vNearest.state: ' + str(vNearest.getState())
                                         vNearest = v
                                         vNearestIndex = i
+                                        print 'vNearest.state: ' + str(vNearest.getState())
+                                        print 'rewiring finished'
                         steeredVertex.parent = vNearestIndex
                         steeredVertex.cost = vNearest.cost+self.getDistance(vNearest,steeredVertex)
 
@@ -121,7 +127,11 @@ class RRTStar(object):
                         #         sys.exit()
 
                         # Adding in state modification to time for rewired vertices
-                        steeredVertex.time = vNearest.time+1.0
+                        # vNearest.controlInput = vNearest.controlInput-(self.computeSteeringAngle(steeredVertex, vNearest) * self.dt)
+                        # vNearest.controlInput = self.computeSteeringAngle(steeredVertex, vNearest)
+                        # steeredVertex.time = vNearest.time+(self.getDistance(vNearest,steeredVertex)/self.velocity)
+                        # print 'rewiring has finished by this point'
+                        # sys.exit()
 
                         if self.lastSteerOnly is False:
                             for i in range(newVertices.shape[0]):
@@ -141,6 +151,7 @@ class RRTStar(object):
                         #         self.plotAll()
 
                         for i,v in enumerate(self.verticesSteered):
+                        # for i,v in enumerate(self.vertices):
                             # if i != steeredVertex.parent:
                             if self.getDistance(v,steeredVertex) < self.computeSearchRadius():   
                                 if self.obstacleFree(v,steeredVertex):                                    
@@ -150,7 +161,13 @@ class RRTStar(object):
                                         # print 'rewiring vertex ' + str(i)
                                         # print 'v.parent: ' + str(v.parent)
 
-                                        v.parent = len(self.verticesSteered)-1
+                                        # v.parent = len(self.verticesSteered)-1
+                                        flagFlag = abs(v.parent-len(self.vertices)+1) > 10
+                                        if flagFlag:
+                                            print 'rewiring happening'
+                                            print 'v.state: ' + str(v.getState())
+
+                                        v.parent = len(self.vertices)-1
 
                                         #Debugging
                                         # print 'v.parent: ' + str(v.parent)
@@ -168,6 +185,10 @@ class RRTStar(object):
                                             v.time = steeredVertex.time + 0.5
                                         else:
                                             v.time = (steeredVertex.time+v.time)/2
+
+                                        if flagFlag:
+                                            print 'v.state: ' + str(v.getState())
+                                            print 'rewiring finished'
 
                         #Debugging
                         # for i,v in enumerate(self.verticesSteered):
@@ -188,7 +209,7 @@ class RRTStar(object):
 
         return successFlag
 
-    def extractPath(self, stopCount = 1000, stopAtGoal = True):
+    def extractPath(self, stopCount = 10000, stopAtGoal = True):
         successFlag = True
         self.path = []
         self.iterationCount = 0
@@ -466,7 +487,7 @@ class RRTStar(object):
         newVertices[0, 0:2] = np.array([vNearest.x, vNearest.y]) + self.dt * np.array([dx, dy])
         newVertices[0, 2] = vNearest.theta + dtheta        
         newVertices[0, 3] = vNearest.time + self.dt
-        newVertices[0, 4] = dtheta * self.r
+        newVertices[0, 4] = dtheta * self.r/self.dt
         newVertices[0, 5] = vNearestIndex
         # print 'newVertices[0,0:6]: ' + str(newVertices[0,0:6])        
         newVertexIndex = len(self.vertices)
@@ -496,7 +517,7 @@ class RRTStar(object):
             # if hasattr(self, 'controlSpline'):
             #     newVertices[i, 4] = noise*self.r
             # else:
-            newVertices[i, 4] = dtheta*self.r
+            newVertices[i, 4] = dtheta*self.r/self.dt
             # print 'newVertices[i, 4]: ' + str(newVertices[i, 4])
             newVertices[i, 5] = newVertexIndex + i - 1
             # print 'newVertices[i,0:6]: ' + str(newVertices[i,0:6])
