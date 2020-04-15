@@ -16,6 +16,7 @@ runTypes: ['rrt','rrtloop','pirrt']
 runType: 'rrt'
 searchRadius: 5
 steeringRatio: 1
+storeSampledPoints: False
 tHorizon: 1
 useRRTStar: True
 velocity: 5
