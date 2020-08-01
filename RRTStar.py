@@ -117,6 +117,7 @@ class RRTStar(object):
                                         print 'vNearest.state: ' + str(vNearest.getState())
                                         vNearest = v
                                         vNearestIndex = i
+                                        vNearest.controlInput = self.computeSteeringAngle(steeredVertex,vNearest)
                                         print 'vNearest.state: ' + str(vNearest.getState())
                                         print 'rewiring finished'
                         steeredVertex.parent = vNearestIndex
@@ -130,7 +131,8 @@ class RRTStar(object):
                         # via the amended theta state of the current vertex.
                         # Here, the steered vertex is the rewired child and the non steered vertex is the 
                         # rewired parent
-                        steeredVertex.controlInput = self.computeSteeringAngle(steeredVertex,vNearest)
+                        # The steered vertex does not have a child. Hence the control value is 0
+                        steeredVertex.controlInput = 0
                         try:
                             deltaTheta = atan((steeredVertex.y-vNearest.y)/(steeredVertex.x-vNearest.x))-vNearest.theta
                             deltaTime = deltaTheta*self.r/steeredVertex.controlInput
@@ -190,12 +192,12 @@ class RRTStar(object):
                                             print 'rewiring happening'
                                             print 'v.state: ' + str(v.getState())
 
-                                        # This is dangerous. Should it be vertices or verticesSteered?
-                                        v.parent = len(self.vertices)-1
+                                        # This is dangerous. I think it should be verticesSteered because it is verticesSteered in line 178
+                                        v.parent = len(self.verticesSteered)-1
 
                                         v.cost = steeredVertex.cost+self.getDistance(v,steeredVertex)
 
-                                        # So you did some rewiring. Now the steered vertex has a new parent. What doesit take to get the parent 
+                                        # So you did some rewiring. Now the steered vertex has a new parent. What does it take to get the parent 
                                         # to the child?
                                         v.controlInput = self.computeSteeringAngle(v,steeredVertex)
 
@@ -215,9 +217,20 @@ class RRTStar(object):
                                         # Take the max of the state difference in x and y
                                         # Here, the steered vertex is the rewired parent and the non steered vertex is the 
                                         # rewired child
-                                        deltaXTime = acos((v.x-steeredVertex.x)/self.velocity)/v.controlInput
-                                        deltaYTime = asin((v.y-steeredVertex.y)/self.velocity)/v.controlInput
-                                        v.time = max(deltaXTime,deltaYTime)
+                                        updatedTheta = (steeredVertex.controlInput*self.dt)+steeredVertex.theta
+                                        deltaXTime = (v.x-steeredVertex.x)/(self.velocity*cos(updatedTheta))
+                                        deltaYTime = (v.y-steeredVertex.y)/(self.velocity*sin(updatedTheta))
+                                        deltaTime = max(deltaXTime,deltaYTime)
+
+                                        # We do not want time to become negative
+                                        if deltaTime < 0:
+                                            print 'time became negative! Fuck'
+                                            print 'v.getState(): ' + str(v.getState())
+                                            print 'steeredVertex.getState(): ' + str(steeredVertex.getState())
+                                            print 'updatedTheta: ' + str(updatedTheta)
+                                            sys.exit()
+
+                                        v.time = steeredVertex.time+deltaTime
 
                         #Debugging
                         # for i,v in enumerate(self.verticesSteered):
