@@ -92,7 +92,7 @@ ply==3.9
 prompt-toolkit==1.0.9
 protobuf==3.2.0
 ptyprocess==0.5.1
-py==1.5.3
+py==1.10.0
 py4j==0.10.4
 pyasn1==0.2.2
 pyasn1-modules==0.0.8
