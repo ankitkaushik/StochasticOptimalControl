@@ -50,7 +50,7 @@ jupyter==1.0.0
 jupyter-client==4.4.0
 jupyter-console==5.0.0
 jupyter-core==4.2.1
-jupyterlab==0.31.11
+jupyterlab==1.2.21
 jupyterlab-launcher==0.10.5
 Keras==2.0.6
 keras-vis==0.4.1
