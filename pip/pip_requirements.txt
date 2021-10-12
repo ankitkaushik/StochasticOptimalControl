@@ -78,7 +78,7 @@ numba==0.33.0+0.ge79330a.dirty
 numpy==1.13.1
 oauth2client==4.0.0
 olefile==0.44
-opencv-python==3.3.0.10
+opencv-python==3.3.1.11
 packaging==16.8
 pandas==0.19.2
 pathlib2==2.1.0
