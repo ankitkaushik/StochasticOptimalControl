@@ -11,7 +11,7 @@ basemap==1.0.7
 bitarray==0.8.1
 bleach==1.5.0
 boto==2.45.0
-bottle==0.12.13
+bottle==0.12.20
 cffi==1.10.0
 clyent==1.2.2
 configparser==3.5.0
