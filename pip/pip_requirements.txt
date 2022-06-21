@@ -75,7 +75,7 @@ networkx==1.11
 nose==1.3.7
 notebook==4.3.0
 numba==0.33.0+0.ge79330a.dirty
-numpy==1.13.1
+numpy==1.22.0
 oauth2client==4.0.0
 olefile==0.44
 opencv-python==3.3.0.10
