@@ -55,7 +55,7 @@ jupyterlab-launcher==0.10.5
 Keras==2.0.6
 keras-vis==0.4.1
 llvmlite==0.18.0
-Mako==1.0.1
+Mako==1.2.2
 Markdown==2.6.9
 MarkupSafe==0.23
 matplotlib==2.1.0
