@@ -1,5 +1,6 @@
-# Path planning using sampling-based techniques within
-the path integral stochastic optimal control framework
+# Path planning using sampling-based techniques within the path integral stochastic optimal control framework
+
+Link to paper: https://ankitkaushik.weebly.com/unpublished-work.html
 
 Path integral optimal control is a methodology to solve optimal control problems by transforming the
 value function for a specific problem into an expectation over all possible trajectories of the system being
