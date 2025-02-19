@@ -1,0 +1,8 @@
+#!/bin/sh
+# ls images1.mp4 images2.mp4 | perl -ne 'print "file $_"' | ffmpeg -f concat -i - -c copy Movie_Joined.mp4
+# ffmpeg -framerate 10 -f image2 -start_number 0 -i March22_single_obstacle_alpha_0.25_controlledSteering_generateTrajectories2_dU_only/RRT_alpha_0.25_obstacle_single_%d.png -vcodec libx264 -crf 25 March22_single_obstacle_alpha_0.25_controlledSteering_generateTrajectories2_dU_only.mp4
+ffmpeg -framerate 10 -f image2 -start_number 0 -i April23_single_obstacle_alpha_0.5_controlledSteering_generateTrajectories2/RRT_alpha_0.5_obstacle_single_%d.png -vcodec libx264 -crf 25 April23_single_obstacle_alpha_0.5_controlledSteering_generateTrajectories2.mp4
+# ffmpeg -framerate 10 -f image2 -start_number 0 -i March22_single_obstacle_alpha_1.0_controlledSteering_generateTrajectories2_dU_only/RRT_alpha_1.0_obstacle_single_%d.png -vcodec libx264 -crf 25 March22_single_obstacle_alpha_1.0_controlledSteering_generateTrajectories2_dU_only.mp4
+# ffmpeg -framerate 10 -f image2 -start_number 0 -i April23_double_obstacle_alpha_0.25_controlledSteering_generateTrajectories2/RRT_alpha_0.25_obstacle_double_%d.png -vcodec libx264 -crf 25 April23_double_obstacle_alpha_0.25_controlledSteering_generateTrajectories2.mp4
+ffmpeg -framerate 10 -f image2 -start_number 0 -i April23_double_obstacle_alpha_0.5_controlledSteering_generateTrajectories2/RRT_alpha_0.5_obstacle_double_%d.png -vcodec libx264 -crf 25 April23_double_obstacle_alpha_0.5_controlledSteering_generateTrajectories2.mp4
+ffmpeg -framerate 10 -f image2 -start_number 0 -i April23_double_obstacle_alpha_1.0_controlledSteering_generateTrajectories2/RRT_alpha_1.0_obstacle_double_%d.png -vcodec libx264 -crf 25 April23_double_obstacle_alpha_1.0_controlledSteering_generateTrajectories2.mp4
