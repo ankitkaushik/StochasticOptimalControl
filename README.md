@@ -21,7 +21,8 @@ within RRT in an attempt to produce dynamically feasible paths for systems that 
 a unicycle model, such as a vehicle [7] and (b) using an asymptotically optimal variation of RRT, such as
 RRT* [9].
 
-References
+**References**
+
 [1] E.A. Theodorou and E. Todorov. Relative entropy and free energy dualities: Connections to path integral
 and kl control. In the Proceedings of IEEE Conference on Decision and Control, pages 1466–1473, Dec
 2012.
